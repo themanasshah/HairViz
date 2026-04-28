@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hair Data Interactive Reveal</title>
+    <!-- Load p5.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px; /* Allows scrolling breathing room */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Natural scrolling */
+            min-height: 100vh;
+            background-color: #f5f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            box-sizing: border-box;
+        }
+
+        #app-container {
+            position: relative;
+            width: 1000px;
+            height: 1000px;
+            background-color: #ffffff;
+            box-shadow: 0 16px 64px rgba(0,0,0,0.06);
+            border-radius: 8px;
+            flex-shrink: 0; /* Prevents squishing on small screens */
+        }
+
+        canvas {
+            display: block;
+            border-radius: 8px;
+        }
+
+        /* Information Tooltip */
+        #info-box {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid #e0e0e0;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.95);
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+            width: 180px;
+        }
+
+        #info-box.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .info-header {
+            font-size: 13px;
+            font-weight: 700;
+            color: #111;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .shower-indicator {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .shower-yes { background: #e3f2fd; color: #1976d2; }
+        .shower-no { background: #f5f5f5; color: #616161; }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 6px;
+        }
+        
+        .data-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .data-val {
+            font-weight: 600;
+            color: #111;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- p5 canvas injects here -->
+        
+        <!-- Floating Info Box -->
+        <div id="info-box">
+            <div class="info-header">
+                <span id="box-day">Day 0</span>
+                <span id="box-sh" class="shower-indicator"></span>
+            </div>
+            <div class="data-row">
+                <span>Volume</span>
+                <span class="data-val" id="box-vol">-</span>
+            </div>
+            <div class="data-row">
+                <span>Quality</span>
+                <span class="data-val" id="box-qual">-</span>
+            </div>
+            <div class="data-row">
+                <span>Neatness</span>
+                <span class="data-val" id="box-neat">-</span>
+            </div>
+            <div class="data-row">
+                <span>Sleep Qual.</span>
+                <span class="data-val" id="box-sl">-</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const rawData = [
+            { day: 25, sh: 0, sl: 1, vol: 2, neat: 2, qual: 2 },
+            { day: 26, sh: 1, sl: 2, vol: 2, neat: 1, qual: 2 },
+            { day: 27, sh: 0, sl: 3, vol: 1, neat: 3, qual: 1 },
+            { day: 28, sh: 0, sl: 2, vol: 3, neat: 1, qual: 3 },
+            { day: 29, sh: 0, sl: 1, vol: 2, neat: 2, qual: 1 },
+            { day: 30, sh: 0, sl: 1, vol: 1, neat: 1, qual: 1 },
+            { day: 31, sh: 0, sl: 1, vol: 1, neat: 3, qual: 1 },
+            { day: 1,  sh: 0, sl: 2, vol: 2, neat: 2, qual: 2 },
+            { day: 2,  sh: 1, sl: 1, vol: 3, neat: 1, qual: 3 },
+            { day: 3,  sh: 0, sl: 2, vol: 2, neat: 2, qual: 2 },
+            { day: 4,  sh: 0, sl: 1, vol: 3, neat: 1, qual: 3 },
+            { day: 5,  sh: 0, sl: 1, vol: 2, neat: 1, qual: 1 },
+            { day: 6,  sh: 0, sl: 2, vol: 2, neat: 3, qual: 2 },
+            { day: 7,  sh: 1, sl: 1, vol: 2, neat: 1, qual: 1 },
+            { day: 8,  sh: 0, sl: 2, vol: 1, neat: 2, qual: 2 },
+            { day: 9,  sh: 0, sl: 2, vol: 1, neat: 3, qual: 2 },
+            { day: 10, sh: 0, sl: 3, vol: 1, neat: 3, qual: 3 },
+            { day: 11, sh: 0, sl: 3, vol: 1, neat: 2, qual: 3 },
+            { day: 12, sh: 0, sl: 1, vol: 2, neat: 1, qual: 1 },
+            { day: 13, sh: 1, sl: 1, vol: 3, neat: 1, qual: 1 }
+        ];
+
+        let W = 1000, H = 1000;
+        let cx = W / 2, cy = H / 2;
+        let R = 380; // Circumradius of Icosagon
+        let edgeLength, apothem;
+        
+        let days = [];
+        let selectedIndex = null;
+        let wells = {};
+        let infoBox;
+
+        function setup() {
+            let canvas = createCanvas(W, H);
+            canvas.parent('app-container');
+
+            infoBox = document.getElementById('info-box');
+
+            // 20-sided polygon geometry calculations
+            let centralAngle = TWO_PI / 20;
+            edgeLength = 2 * R * sin(centralAngle / 2); // Exact length of one outer edge
+            apothem = R * cos(centralAngle / 2); // Distance from center to the exact midpoint of an edge
+
+            // Invisible Gravity Wells
+            let forceRadius = 480;
+            wells = {
+                vol:  createVector(cx, cy - forceRadius),
+                qual: createVector(cx + forceRadius * cos(PI/6), cy + forceRadius * sin(PI/6)),
+                neat: createVector(cx - forceRadius * cos(PI/6), cy + forceRadius * sin(PI/6))
+            };
+
+            // Setup Strands
+            for (let i = 0; i < 20; i++) {
+                let angle = -HALF_PI + i * centralAngle;
+                
+                let strokes = [];
+                let numStrokes = 1000; 
+                
+                for (let j = 0; j < numStrokes; j++) {
+                    strokes.push({
+                        t: j / numStrokes, 
+                        offset: random(-edgeLength / 2, edgeLength / 2), 
+                        len: random(5, 20),
+                        phase: random(TWO_PI) 
+                    });
+                }
+
+                days.push({
+                    data: rawData[i],
+                    angle: angle,
+                    p0: createVector(cx, cy), 
+                    p3: createVector(cx + apothem * cos(angle), cy + apothem * sin(angle)), 
+                    strokes: strokes,
+                    animProgress: 0,
+                    hasBeenDiscovered: false // Tracks if it should stay deformed
+                });
+            }
+        }
+
+        function draw() {
+            background(255);
+
+            // 1. Draw subtle gravity well labels
+            fill(180);
+            noStroke();
+            textAlign(CENTER, CENTER);
+            textSize(12);
+            letterSpacing = 2;
+            text("VOLUME", wells.vol.x, wells.vol.y + 30);
+            text("QUALITY", wells.qual.x - 35, wells.qual.y - 20);
+            text("NEATNESS", wells.neat.x + 35, wells.neat.y - 20);
+
+            // 2. Draw Icosagon framework
+            stroke(240);
+            strokeWeight(1.5);
+            noFill();
+            beginShape();
+            for (let i = 0; i < 20; i++) {
+                let vAngle = -HALF_PI + (i - 0.5) * (TWO_PI / 20);
+                vertex(cx + R * cos(vAngle), cy + R * sin(vAngle));
+            }
+            endShape(CLOSE);
+
+            // 3. Render Unselected/Undiscovered Strands
+            for (let i = 0; i < 20; i++) {
+                if (i !== selectedIndex) renderStrand(i, false);
+            }
+
+            // 4. Render Selected Strand (drawn last so it overlays the center cleanly)
+            if (selectedIndex !== null) {
+                renderStrand(selectedIndex, true);
+            }
+
+            // 5. Minimal Day Labels
+            for (let i = 0; i < 20; i++) {
+                let d = days[i];
+                let lx = cx + (R + 25) * cos(d.angle);
+                let ly = cy + (R + 25) * sin(d.angle);
+                
+                fill(d.data.sh === 1 ? color(74, 144, 217) : color(150));
+                if (i === selectedIndex) {
+                    fill(20);
+                    textSize(14);
+                    textStyle(BOLD);
+                } else if (d.hasBeenDiscovered) {
+                    textSize(11);
+                    textStyle(BOLD);
+                } else {
+                    textSize(11);
+                    textStyle(NORMAL);
+                }
+                text(d.data.day, lx, ly);
+            }
+        }
+
+        function renderStrand(index, isSelected) {
+            let day = days[index];
+
+            if (isSelected) {
+                day.hasBeenDiscovered = true;
+            }
+
+            // Smooth Interpolation target
+            let targetProgress = day.hasBeenDiscovered ? 1 : 0;
+            day.animProgress = lerp(day.animProgress, targetProgress, 0.08);
+
+            // Normalize data mapping (0 to 1)
+            let v = (day.data.vol - 1) / 2;
+            let q = (day.data.qual - 1) / 2;
+            let n = (day.data.neat - 1) / 2;
+            
+            // Total gravity forces pulling on the curve
+            let fX = v * (wells.vol.x - cx) + q * (wells.qual.x - cx) + n * (wells.neat.x - cx);
+            let fY = v * (wells.vol.y - cy) + q * (wells.qual.y - cy) + n * (wells.neat.y - cy);
+
+            // Calculate Straight-Line Baseline Control Points
+            let p1_straight = p5.Vector.lerp(day.p0, day.p3, 0.33);
+            let p2_straight = p5.Vector.lerp(day.p0, day.p3, 0.66);
+
+            // Calculate Fully Deformed Control Points
+            let totalIntensity = Math.max(v, q, n);
+            let basePush = 120 + totalIntensity * 120;
+            let c1_deformed = createVector(
+                day.p0.x + cos(day.angle) * basePush + fX * 1.5,
+                day.p0.y + sin(day.angle) * basePush + fY * 1.5
+            );
+
+            let sweepDir = (index % 2 === 0) ? 1 : -1;
+            let sweepMag = 280 * sweepDir * Math.max(0.2, totalIntensity);
+            let c2_deformed = createVector(
+                day.p3.x - cos(day.angle) * 100 + fX * 0.5 - sin(day.angle) * sweepMag,
+                day.p3.y - sin(day.angle) * 100 + fY * 0.5 + cos(day.angle) * sweepMag
+            );
+
+            // Current Control Points
+            let c1 = p5.Vector.lerp(p1_straight, c1_deformed, day.animProgress);
+            let c2 = p5.Vector.lerp(p2_straight, c2_deformed, day.animProgress);
+
+            // Style setup
+            let baseColor = day.data.sh === 1 ? color(74, 144, 217) : color(40, 40, 40);
+            
+            if (isSelected) {
+                baseColor.setAlpha(255);
+            } else if (day.hasBeenDiscovered) {
+                baseColor.setAlpha(100); 
+            } else {
+                baseColor.setAlpha(15);  
+            }
+            
+            stroke(baseColor);
+            strokeWeight(1);
+            strokeCap(ROUND);
+
+            // Render Generative Micro-strokes with Tapering
+            for (let strokeData of day.strokes) {
+                let t = strokeData.t;
+
+                let pt = getBezierPoint(t, day.p0, c1, c2, day.p3);
+                let tan = getBezierTangent(t, day.p0, c1, c2, day.p3);
+                let nx = -tan.y;
+                let ny = tan.x;
+
+                // Tapering envelope (0 at ends, 1 in middle)
+                let envelope = sin(t * PI);
+
+                // Apply envelope to turbulence so it pinches at the ends cleanly
+                let turbulenceMag = 18 * day.animProgress * envelope;
+                let turbulence = sin(t * TWO_PI * 3 - frameCount * 0.04 + strokeData.phase) * turbulenceMag;
+                
+                // Apply envelope to the stroke offset to taper the overall width
+                let taperedOffset = strokeData.offset * envelope;
+
+                let cxPos = pt.x + nx * (taperedOffset + turbulence);
+                let cyPos = pt.y + ny * (taperedOffset + turbulence);
+
+                let halfLen = strokeData.len / 2;
+                line(
+                    cxPos - tan.x * halfLen, cyPos - tan.y * halfLen,
+                    cxPos + tan.x * halfLen, cyPos + tan.y * halfLen
+                );
+            }
+        }
+
+        // Mouse Interaction
+        function mousePressed() {
+            let dToCenter = dist(mouseX, mouseY, cx, cy);
+            
+            // Interaction bounded inside the polygon
+            if (dToCenter < apothem + 20 && dToCenter > 10) {
+                let mouseAngle = atan2(mouseY - cy, mouseX - cx);
+                let adjustedAngle = mouseAngle + HALF_PI;
+                if (adjustedAngle < 0) adjustedAngle += TWO_PI;
+                
+                let sliceWidth = TWO_PI / 20;
+                let clickedIndex = floor((adjustedAngle + sliceWidth / 2) / sliceWidth) % 20;
+
+                if (selectedIndex !== clickedIndex) {
+                    selectedIndex = clickedIndex;
+                    updateInfoBox(clickedIndex);
+                }
+            } else {
+                selectedIndex = null;
+                infoBox.classList.remove('active');
+            }
+        }
+
+        function updateInfoBox(index) {
+            let d = days[index];
+            
+            document.getElementById('box-day').innerText = `Day ${d.data.day}`;
+            
+            let shEl = document.getElementById('box-sh');
+            if(d.data.sh === 1) {
+                shEl.innerText = 'SHOWER';
+                shEl.className = 'shower-indicator shower-yes';
+            } else {
+                shEl.innerText = 'NO SHOWER';
+                shEl.className = 'shower-indicator shower-no';
+            }
+
+            document.getElementById('box-vol').innerText = d.data.vol;
+            document.getElementById('box-qual').innerText = d.data.qual;
+            document.getElementById('box-neat').innerText = d.data.neat;
+            document.getElementById('box-sl').innerText = d.data.sl;
+
+            let boxRadius = R + 110;
+            let px = cx + boxRadius * cos(d.angle);
+            let py = cy + boxRadius * sin(d.angle);
+            
+            px = constrain(px, 100, W - 100);
+            py = constrain(py, 100, H - 100);
+
+            infoBox.style.left = `${px}px`;
+            infoBox.style.top = `${py}px`;
+            infoBox.classList.add('active');
+        }
+
+        // Bezier Math
+        function getBezierPoint(t, p0, c1, c2, p3) {
+            let mt = 1 - t;
+            let x = mt*mt*mt*p0.x + 3*mt*mt*t*c1.x + 3*mt*t*t*c2.x + t*t*t*p3.x;
+            let y = mt*mt*mt*p0.y + 3*mt*mt*t*c1.y + 3*mt*t*t*c2.y + t*t*t*p3.y;
+            return createVector(x, y);
+        }
+
+        function getBezierTangent(t, p0, c1, c2, p3) {
+            let mt = 1 - t;
+            let dx = 3*mt*mt*(c1.x - p0.x) + 6*mt*t*(c2.x - c1.x) + 3*t*t*(p3.x - c2.x);
+            let dy = 3*mt*mt*(c1.y - p0.y) + 6*mt*t*(c2.y - c1.y) + 3*t*t*(p3.y - c2.y);
+            let len = sqrt(dx*dx + dy*dy) || 1;
+            return createVector(dx/len, dy/len);
+        }
+    </script>
+</body>
+</html>

@@ -2,425 +2,623 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hair Data Interactive Reveal</title>
-    <!-- Load p5.js -->
+    <!-- Mobile specific meta tags to prevent zooming and ensure proper app-like scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Interactive Bedhead Flow Reveal</title>
+    
+    <!-- Load p5.js and ONLY Crimson Pro Font -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,700&display=swap" rel="stylesheet">
+    
     <style>
-        body {
-            margin: 0;
-            padding: 40px; /* Allows scrolling breathing room */
-            display: flex;
-            justify-content: center;
-            align-items: flex-start; /* Natural scrolling */
-            min-height: 100vh;
-            background-color: #f5f5f7;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            box-sizing: border-box;
+        :root {
+            /* This variable dynamically tracks the canvas zoom to perfectly scale the HTML */
+            --scaleF: 1;
         }
 
+        body {
+            margin: 0;
+            padding: 0; 
+            background-color: #ffffff; 
+            font-family: 'Crimson Pro', serif;
+            font-weight: 300; 
+            box-sizing: border-box;
+            color: #000000;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh; 
+            overflow: hidden;
+        }
+
+        /* Screen Transitions */
+        .screen {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Staggered Logo Styling */
+        .logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 0.75;
+            font-family: 'Crimson Pro', serif;
+            font-weight: 300; /* Set to Light */
+        }
+
+        .logo-large {
+            font-size: 72px;
+            margin-bottom: 30px;
+        }
+
+        .logo-small {
+            font-size: 32px;
+            margin-top: 30px;
+            margin-bottom: 10px;
+        }
+
+        .l-bad { color: #b45743; transform: rotate(-3deg) translateX(15px); z-index: 3; }
+        .l-bed { color: #1e8eb4; font-style: italic; transform: rotate(4deg) translateX(-15px); z-index: 2; }
+        .l-head { color: #000000; transform: rotate(-2deg) translateX(20px); z-index: 1; }
+
+        /* Screen 1 specific elements */
+        #screen-1 {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            font-weight: 400;
+            margin-top: 40px;
+            margin-bottom: 80px;
+            color: #222;
+        }
+
+        .interact-btn {
+            font-family: 'Crimson Pro', serif;
+            font-size: 18px;
+            color: #1e8eb4;
+            text-decoration: underline;
+            text-underline-offset: 4px;
+            cursor: pointer;
+            font-weight: 400;
+            background: none;
+            border: none;
+            padding: 10px;
+        }
+
+        /* Screen 2 specific elements */
         #app-container {
             position: relative;
-            width: 1000px;
-            height: 1000px;
-            background-color: #ffffff;
-            box-shadow: 0 16px 64px rgba(0,0,0,0.06);
-            border-radius: 8px;
-            flex-shrink: 0; /* Prevents squishing on small screens */
+            flex-grow: 1;
+            background-color: transparent; 
+            width: 100%;
+            overflow: hidden;
+            touch-action: none; 
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            flex-shrink: 0;
+            font-size: 15px;
+            color: #1e8eb4;
+            font-weight: 400;
         }
 
         canvas {
             display: block;
-            border-radius: 8px;
+            touch-action: none;
+            outline: none;
         }
 
-        /* Information Tooltip */
+        /* Centered Information Display */
         #info-box {
             position: absolute;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid #e0e0e0;
-            padding: 16px 20px;
-            border-radius: 8px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            top: 50%;
+            left: 50%;
+            /* Perfectly scaled to match the 1000x1000 virtual canvas coordinates */
+            width: 220px; 
+            height: 220px;
+            text-align: center;
+            background: transparent;
             pointer-events: none;
             opacity: 0;
-            transform: translate(-50%, -50%) scale(0.95);
-            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            
+            /* Transforms dynamically bind to CSS variable updated by JS */
+            transform: translate(-50%, -50%) scale(calc(var(--scaleF) * 0.85));
+            transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 10;
-            width: 180px;
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         #info-box.active {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
+            transform: translate(-50%, -50%) scale(var(--scaleF));
         }
 
         .info-header {
-            font-size: 13px;
-            font-weight: 700;
-            color: #111;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
-            text-transform: uppercase;
+            font-size: 34px;
+            font-weight: 400; 
+            color: #000000; 
+            margin-bottom: 8px;
             letter-spacing: 0.5px;
         }
 
         .shower-indicator {
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 600;
+            display: inline-block;
+            font-size: 16px;
+            font-weight: 400; 
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
         }
 
-        .shower-yes { background: #e3f2fd; color: #1976d2; }
-        .shower-no { background: #f5f5f5; color: #616161; }
+        .shower-yes { color: #1e8eb4; } 
+        .shower-no { color: #b45743; } 
 
         .data-row {
             display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #555;
-            margin-bottom: 6px;
+            justify-content: center;
+            gap: 16px;
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 8px;
+            width: 100%;
         }
         
-        .data-row:last-child {
-            margin-bottom: 0;
-        }
+        .data-row:last-child { margin-bottom: 0; }
+        .data-val { font-weight: 600; color: #000000; }
 
-        .data-val {
-            font-weight: 600;
-            color: #111;
-        }
     </style>
 </head>
 <body>
 
-    <div id="app-container">
-        <!-- p5 canvas injects here -->
-        
-        <!-- Floating Info Box -->
-        <div id="info-box">
-            <div class="info-header">
-                <span id="box-day">Day 0</span>
-                <span id="box-sh" class="shower-indicator"></span>
-            </div>
-            <div class="data-row">
-                <span>Volume</span>
-                <span class="data-val" id="box-vol">-</span>
-            </div>
-            <div class="data-row">
-                <span>Quality</span>
-                <span class="data-val" id="box-qual">-</span>
-            </div>
-            <div class="data-row">
-                <span>Neatness</span>
-                <span class="data-val" id="box-neat">-</span>
-            </div>
-            <div class="data-row">
-                <span>Sleep Qual.</span>
-                <span class="data-val" id="box-sl">-</span>
+    <!-- SCREEN 1: Landing Page -->
+    <div id="screen-1" class="screen active">
+        <div class="logo-container logo-large">
+            <span class="l-bad">bad</span>
+            <span class="l-bed">bed</span>
+            <span class="l-head">head</span>
+        </div>
+        <p class="subtitle">An Autoethnographic Study of Hair, Habit, and Sleep</p>
+        <button id="start-btn" class="interact-btn">Interact with the data</button>
+    </div>
+
+    <!-- SCREEN 2: Interactive Visualization -->
+    <div id="screen-2" class="screen">
+        <div class="logo-container logo-small">
+            <span class="l-bad">bad</span>
+            <span class="l-bed">bed</span>
+            <span class="l-head">head</span>
+        </div>
+
+        <div id="app-container">
+            <!-- p5 canvas injects here -->
+            
+            <div id="info-box">
+                <div class="info-header" id="box-day">25/3</div>
+                <div id="box-sh" class="shower-indicator"></div>
+                
+                <div class="data-row">
+                    <span>Quality</span>
+                    <span class="data-val" id="box-qual">-</span>
+                </div>
+                <div class="data-row">
+                    <span>Volume</span>
+                    <span class="data-val" id="box-vol">-</span>
+                </div>
+                <div class="data-row">
+                    <span>Neatness</span>
+                    <span class="data-val" id="box-neat">-</span>
+                </div>
             </div>
         </div>
+
+        <footer>
+            Tap on the hair strands to read the data
+        </footer>
     </div>
 
     <script>
+        // 21 Days of Data
         const rawData = [
-            { day: 25, sh: 0, sl: 1, vol: 2, neat: 2, qual: 2 },
-            { day: 26, sh: 1, sl: 2, vol: 2, neat: 1, qual: 2 },
-            { day: 27, sh: 0, sl: 3, vol: 1, neat: 3, qual: 1 },
-            { day: 28, sh: 0, sl: 2, vol: 3, neat: 1, qual: 3 },
-            { day: 29, sh: 0, sl: 1, vol: 2, neat: 2, qual: 1 },
-            { day: 30, sh: 0, sl: 1, vol: 1, neat: 1, qual: 1 },
-            { day: 31, sh: 0, sl: 1, vol: 1, neat: 3, qual: 1 },
-            { day: 1,  sh: 0, sl: 2, vol: 2, neat: 2, qual: 2 },
-            { day: 2,  sh: 1, sl: 1, vol: 3, neat: 1, qual: 3 },
-            { day: 3,  sh: 0, sl: 2, vol: 2, neat: 2, qual: 2 },
-            { day: 4,  sh: 0, sl: 1, vol: 3, neat: 1, qual: 3 },
-            { day: 5,  sh: 0, sl: 1, vol: 2, neat: 1, qual: 1 },
-            { day: 6,  sh: 0, sl: 2, vol: 2, neat: 3, qual: 2 },
-            { day: 7,  sh: 1, sl: 1, vol: 2, neat: 1, qual: 1 },
-            { day: 8,  sh: 0, sl: 2, vol: 1, neat: 2, qual: 2 },
-            { day: 9,  sh: 0, sl: 2, vol: 1, neat: 3, qual: 2 },
-            { day: 10, sh: 0, sl: 3, vol: 1, neat: 3, qual: 3 },
-            { day: 11, sh: 0, sl: 3, vol: 1, neat: 2, qual: 3 },
-            { day: 12, sh: 0, sl: 1, vol: 2, neat: 1, qual: 1 },
-            { day: 13, sh: 1, sl: 1, vol: 3, neat: 1, qual: 1 }
+            { day: 25, sh: 0, qual: 1, vol: 2, neat: 2 },
+            { day: 26, sh: 1, qual: 2, vol: 2, neat: 1 },
+            { day: 27, sh: 0, qual: 1, vol: 1, neat: 3 },
+            { day: 28, sh: 0, qual: 3, vol: 3, neat: 1 },
+            { day: 29, sh: 0, qual: 1, vol: 2, neat: 2 },
+            { day: 30, sh: 0, qual: 1, vol: 1, neat: 1 },
+            { day: 31, sh: 0, qual: 1, vol: 1, neat: 3 },
+            { day: 1,  sh: 0, qual: 2, vol: 2, neat: 2 },
+            { day: 2,  sh: 1, qual: 3, vol: 3, neat: 1 },
+            { day: 3,  sh: 0, qual: 2, vol: 2, neat: 2 },
+            { day: 4,  sh: 0, qual: 3, vol: 3, neat: 1 },
+            { day: 5,  sh: 0, qual: 1, vol: 2, neat: 1 },
+            { day: 6,  sh: 0, qual: 2, vol: 2, neat: 3 },
+            { day: 7,  sh: 1, qual: 1, vol: 2, neat: 1 },
+            { day: 8,  sh: 0, qual: 2, vol: 1, neat: 2 },
+            { day: 9,  sh: 0, qual: 2, vol: 1, neat: 3 },
+            { day: 10, sh: 0, qual: 3, vol: 1, neat: 3 },
+            { day: 11, sh: 0, qual: 3, vol: 1, neat: 2 },
+            { day: 12, sh: 0, qual: 1, vol: 2, neat: 1 },
+            { day: 13, sh: 1, qual: 1, vol: 3, neat: 1 },
+            { day: 14, sh: 0, qual: 2, vol: 2, neat: 2 } 
         ];
 
-        let W = 1000, H = 1000;
-        let cx = W / 2, cy = H / 2;
-        let R = 380; // Circumradius of Icosagon
-        let edgeLength, apothem;
+        const dates = [
+            "25/3", "26/3", "27/3", "28/3", "29/3", "30/3", "31/3", 
+            "1/4", "2/4", "3/4", "4/4", "5/4", "6/4", "7/4", 
+            "8/4", "9/4", "10/4", "11/4", "12/4", "13/4", "14/4"
+        ];
+
+        // Palette Colors
+        const C_BEIGE = '#e2ded6';
+        const C_RUST  = '#b45743';
+        const C_TEAL  = '#1e8eb4';
+        const C_BLACK = '#666666'; 
+
+        // Virtual Coordinate System (remains fixed at 1000x1000 for internal math)
+        const vW = 1000, vH = 1000;
+        const cx = vW / 2, cy = vH / 2;
+        
+        // Slightly larger center to perfectly accommodate the 220px bounding box
+        let R_hole = 160; 
+        let R1 = 230;
+        let R2 = 300;
+        let R3 = 370; 
+        let radiiMap = { 1: R1, 2: R2, 3: R3 };
         
         let days = [];
         let selectedIndex = null;
-        let wells = {};
         let infoBox;
+        let container;
+        let scaleF = 1; // Tracks current dynamic zoom
+
+        // Navigation Logic
+        document.getElementById('start-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('screen-1').classList.remove('active');
+            document.getElementById('screen-2').classList.add('active');
+            // Recalculate layout once element is visible
+            windowResized();
+        });
 
         function setup() {
-            let canvas = createCanvas(W, H);
+            container = document.getElementById('app-container');
+            let canvas = createCanvas(container.clientWidth, container.clientHeight);
             canvas.parent('app-container');
-
             infoBox = document.getElementById('info-box');
 
-            // 20-sided polygon geometry calculations
-            let centralAngle = TWO_PI / 20;
-            edgeLength = 2 * R * sin(centralAngle / 2); // Exact length of one outer edge
-            apothem = R * cos(centralAngle / 2); // Distance from center to the exact midpoint of an edge
+            textFont('Crimson Pro');
+            curveTightness(-0.25); 
 
-            // Invisible Gravity Wells
-            let forceRadius = 480;
-            wells = {
-                vol:  createVector(cx, cy - forceRadius),
-                qual: createVector(cx + forceRadius * cos(PI/6), cy + forceRadius * sin(PI/6)),
-                neat: createVector(cx - forceRadius * cos(PI/6), cy + forceRadius * sin(PI/6))
-            };
+            let centralAngle = TWO_PI / 21;
 
-            // Setup Strands
-            for (let i = 0; i < 20; i++) {
-                let angle = -HALF_PI + i * centralAngle;
+            let q_ang = -HALF_PI + TWO_PI/6;     
+            let v_ang = -HALF_PI + 3*TWO_PI/6;   
+            let n_ang = -HALF_PI + 5*TWO_PI/6;   
+
+            for (let i = 0; i < 21; i++) {
+                let d = rawData[i];
+                let a_base = -HALF_PI + i * centralAngle; 
                 
+                let dQ = min((a_base - q_ang + TWO_PI) % TWO_PI, (q_ang - a_base + TWO_PI) % TWO_PI);
+                let dV = min((a_base - v_ang + TWO_PI) % TWO_PI, (v_ang - a_base + TWO_PI) % TWO_PI);
+                let dN = min((a_base - n_ang + TWO_PI) % TWO_PI, (n_ang - a_base + TWO_PI) % TWO_PI);
+
+                let param1, param2, param3;
+                if (dQ <= dV && dQ <= dN) {
+                    param1 = 'vol'; param2 = 'neat'; param3 = 'qual';
+                } else if (dV <= dQ && dV <= dN) {
+                    param1 = 'neat'; param2 = 'qual'; param3 = 'vol';
+                } else {
+                    param1 = 'qual'; param2 = 'vol'; param3 = 'neat';
+                }
+
+                let a0 = a_base;
+                let a1 = a_base + TWO_PI / 3;
+                let a2 = a_base + 2 * TWO_PI / 3;
+                let a3 = a_base + TWO_PI; 
+
+                let pts_deformed = [];
+                pts_deformed.push(createVector(cx + (R_hole - 30) * cos(a0 - 0.5), cy + (R_hole - 30) * sin(a0 - 0.5)));
+                pts_deformed.push(createVector(cx + R_hole * cos(a0), cy + R_hole * sin(a0)));
+                pts_deformed.push(createVector(cx + radiiMap[d[param1]] * cos(a1), cy + radiiMap[d[param1]] * sin(a1))); 
+                pts_deformed.push(createVector(cx + radiiMap[d[param2]] * cos(a2), cy + radiiMap[d[param2]] * sin(a2)));
+                pts_deformed.push(createVector(cx + radiiMap[d[param3]] * cos(a3), cy + radiiMap[d[param3]] * sin(a3)));
+                pts_deformed.push(createVector(cx + (radiiMap[d[param3]] + 40) * cos(a3 + 0.5), cy + (radiiMap[d[param3]] + 40) * sin(a3 + 0.5)));
+
+                let pts_straight = [];
+                let r_step = (R3 - R_hole) / 3; 
+                pts_straight.push(createVector(cx + (R_hole - 30) * cos(a_base), cy + (R_hole - 30) * sin(a_base)));
+                pts_straight.push(createVector(cx + R_hole * cos(a_base), cy + R_hole * sin(a_base)));
+                pts_straight.push(createVector(cx + (R_hole + r_step * 1) * cos(a_base), cy + (R_hole + r_step * 1) * sin(a_base)));
+                pts_straight.push(createVector(cx + (R_hole + r_step * 2) * cos(a_base), cy + (R_hole + r_step * 2) * sin(a_base)));
+                pts_straight.push(createVector(cx + R3 * cos(a_base), cy + R3 * sin(a_base)));
+                pts_straight.push(createVector(cx + (R3 + 40) * cos(a_base), cy + (R3 + 40) * sin(a_base)));
+
                 let strokes = [];
-                let numStrokes = 1000; 
+                let numStrokes = 800; 
                 
                 for (let j = 0; j < numStrokes; j++) {
+                    let u = 1 - Math.random(); 
+                    let v = Math.random();
+                    let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+                    
                     strokes.push({
-                        t: j / numStrokes, 
-                        offset: random(-edgeLength / 2, edgeLength / 2), 
-                        len: random(5, 20),
-                        phase: random(TWO_PI) 
+                        t: Math.random(), 
+                        offsetNorm: z * 0.25, 
+                        len: random(3, 8), 
+                        phase: random(TWO_PI)
                     });
                 }
 
                 days.push({
-                    data: rawData[i],
-                    angle: angle,
-                    p0: createVector(cx, cy), 
-                    p3: createVector(cx + apothem * cos(angle), cy + apothem * sin(angle)), 
+                    data: d,
+                    dateString: dates[i],
+                    a_base: a_base,
+                    pts_deformed: pts_deformed,
+                    pts_straight: pts_straight,
                     strokes: strokes,
-                    animProgress: 0,
-                    hasBeenDiscovered: false // Tracks if it should stay deformed
+                    animProgress: 0
                 });
             }
         }
 
-        function draw() {
-            background(255);
+        function windowResized() {
+            if (container && document.getElementById('screen-2').classList.contains('active')) {
+                resizeCanvas(container.clientWidth, container.clientHeight);
+            }
+        }
 
-            // 1. Draw subtle gravity well labels
-            fill(180);
-            noStroke();
-            textAlign(CENTER, CENTER);
-            textSize(12);
-            letterSpacing = 2;
-            text("VOLUME", wells.vol.x, wells.vol.y + 30);
-            text("QUALITY", wells.qual.x - 35, wells.qual.y - 20);
-            text("NEATNESS", wells.neat.x + 35, wells.neat.y - 20);
+        function getSplinePoint(pts, t) {
+            let numSegments = pts.length - 3; 
+            let segment = Math.floor(t * numSegments);
+            if (segment >= numSegments) segment = numSegments - 1;
+            let localT = (t * numSegments) - segment;
 
-            // 2. Draw Icosagon framework
-            stroke(240);
-            strokeWeight(1.5);
+            let p0 = pts[segment];
+            let p1 = pts[segment + 1];
+            let p2 = pts[segment + 2];
+            let p3 = pts[segment + 3];
+
+            let x = curvePoint(p0.x, p1.x, p2.x, p3.x, localT);
+            let y = curvePoint(p0.y, p1.y, p2.y, p3.y, localT);
+            return createVector(x, y);
+        }
+
+        function getSplineTangent(pts, t) {
+            let t1 = t;
+            let t2 = t + 0.001;
+            if (t2 > 1) {
+                t1 = t - 0.001;
+                t2 = t;
+            }
+            let pt1 = getSplinePoint(pts, t1);
+            let pt2 = getSplinePoint(pts, t2);
+            let dx = pt2.x - pt1.x;
+            let dy = pt2.y - pt1.y;
+            let mag = sqrt(dx*dx + dy*dy) || 1;
+            return createVector(dx/mag, dy/mag);
+        }
+
+        function drawPolygon(radius, faint) {
+            stroke(color(255, 255, 255, faint ? 100 : 200)); 
+            strokeWeight(faint ? 0.8 : 1.5);
             noFill();
             beginShape();
-            for (let i = 0; i < 20; i++) {
-                let vAngle = -HALF_PI + (i - 0.5) * (TWO_PI / 20);
-                vertex(cx + R * cos(vAngle), cy + R * sin(vAngle));
+            for (let i = 0; i < 21; i++) {
+                let vAngle = -HALF_PI + (i - 0.5) * (TWO_PI / 21);
+                vertex(cx + radius * cos(vAngle), cy + radius * sin(vAngle));
+            }
+            endShape(CLOSE);
+        }
+
+        function draw() {
+            if (!document.getElementById('screen-2').classList.contains('active')) return;
+
+            clear();
+            background(255);
+            
+            // Calculate dynamic mobile scaling
+            scaleF = Math.min(width / vW, height / vH) * 0.95;
+            
+            // Pass the exact scale back to the CSS so the HTML overlay size matches flawlessly
+            document.documentElement.style.setProperty('--scaleF', scaleF);
+
+            push();
+            translate(width / 2, height / 2);
+            scale(scaleF);
+            translate(-cx, -cy);
+
+            // 1. Draw solid Beige Icosagon base
+            fill(color(C_BEIGE));
+            stroke(color(0, 0, 0, 15)); 
+            strokeWeight(1);
+            beginShape();
+            for (let i = 0; i < 21; i++) {
+                let vAngle = -HALF_PI + (i - 0.5) * (TWO_PI / 21);
+                vertex(cx + R3 * cos(vAngle), cy + R3 * sin(vAngle));
             }
             endShape(CLOSE);
 
-            // 3. Render Unselected/Undiscovered Strands
-            for (let i = 0; i < 20; i++) {
+            // 2. Draw Center White Hole 
+            fill(255);
+            noStroke();
+            beginShape();
+            for (let i = 0; i < 21; i++) {
+                let vAngle = -HALF_PI + (i - 0.5) * (TWO_PI / 21);
+                vertex(cx + R_hole * cos(vAngle), cy + R_hole * sin(vAngle));
+            }
+            endShape(CLOSE);
+
+            // 3. Draw faint interior guide rings
+            noFill();
+            stroke(color(0, 0, 0, 12));
+            strokeWeight(1);
+            [R1, R2].forEach(r => {
+                beginShape();
+                for (let i = 0; i < 21; i++) {
+                    let vAngle = -HALF_PI + (i - 0.5) * (TWO_PI / 21);
+                    vertex(cx + r * cos(vAngle), cy + r * sin(vAngle));
+                }
+                endShape(CLOSE);
+            });
+
+            let fontScale = constrain(scaleF, 0.3, 1.0);
+            
+            // 4. Render Strands
+            for (let i = 0; i < 21; i++) {
                 if (i !== selectedIndex) renderStrand(i, false);
             }
-
-            // 4. Render Selected Strand (drawn last so it overlays the center cleanly)
             if (selectedIndex !== null) {
                 renderStrand(selectedIndex, true);
             }
 
-            // 5. Minimal Day Labels
-            for (let i = 0; i < 20; i++) {
+            // 5. Outer Day Labels
+            drawingContext.textAlign = "center";
+            drawingContext.textBaseline = "middle";
+            for (let i = 0; i < 21; i++) {
                 let d = days[i];
-                let lx = cx + (R + 25) * cos(d.angle);
-                let ly = cy + (R + 25) * sin(d.angle);
+                let lx = cx + (R3 + 35) * cos(d.a_base); 
+                let ly = cy + (R3 + 35) * sin(d.a_base);
                 
-                fill(d.data.sh === 1 ? color(74, 144, 217) : color(150));
                 if (i === selectedIndex) {
-                    fill(20);
-                    textSize(14);
-                    textStyle(BOLD);
-                } else if (d.hasBeenDiscovered) {
-                    textSize(11);
-                    textStyle(BOLD);
+                    drawingContext.fillStyle = "rgb(0, 0, 0)";
+                    drawingContext.font = "400 " + (15 / fontScale) + "px 'Crimson Pro'";
                 } else {
-                    textSize(11);
-                    textStyle(NORMAL);
+                    drawingContext.fillStyle = "rgba(0, 0, 0, 0.7)"; 
+                    drawingContext.font = "300 " + (12 / fontScale) + "px 'Crimson Pro'";
                 }
-                text(d.data.day, lx, ly);
+                drawingContext.fillText(d.dateString, lx, ly);
             }
+
+            pop();
         }
 
         function renderStrand(index, isSelected) {
             let day = days[index];
 
-            if (isSelected) {
-                day.hasBeenDiscovered = true;
+            let targetProgress = isSelected ? 1 : 0;
+            day.animProgress = lerp(day.animProgress, targetProgress, 0.08); 
+
+            let curPts = [];
+            for (let i = 0; i < day.pts_straight.length; i++) {
+                curPts.push(p5.Vector.lerp(day.pts_straight[i], day.pts_deformed[i], day.animProgress));
             }
 
-            // Smooth Interpolation target
-            let targetProgress = day.hasBeenDiscovered ? 1 : 0;
-            day.animProgress = lerp(day.animProgress, targetProgress, 0.08);
-
-            // Normalize data mapping (0 to 1)
-            let v = (day.data.vol - 1) / 2;
-            let q = (day.data.qual - 1) / 2;
-            let n = (day.data.neat - 1) / 2;
-            
-            // Total gravity forces pulling on the curve
-            let fX = v * (wells.vol.x - cx) + q * (wells.qual.x - cx) + n * (wells.neat.x - cx);
-            let fY = v * (wells.vol.y - cy) + q * (wells.qual.y - cy) + n * (wells.neat.y - cy);
-
-            // Calculate Straight-Line Baseline Control Points
-            let p1_straight = p5.Vector.lerp(day.p0, day.p3, 0.33);
-            let p2_straight = p5.Vector.lerp(day.p0, day.p3, 0.66);
-
-            // Calculate Fully Deformed Control Points
-            let totalIntensity = Math.max(v, q, n);
-            let basePush = 120 + totalIntensity * 120;
-            let c1_deformed = createVector(
-                day.p0.x + cos(day.angle) * basePush + fX * 1.5,
-                day.p0.y + sin(day.angle) * basePush + fY * 1.5
-            );
-
-            let sweepDir = (index % 2 === 0) ? 1 : -1;
-            let sweepMag = 280 * sweepDir * Math.max(0.2, totalIntensity);
-            let c2_deformed = createVector(
-                day.p3.x - cos(day.angle) * 100 + fX * 0.5 - sin(day.angle) * sweepMag,
-                day.p3.y - sin(day.angle) * 100 + fY * 0.5 + cos(day.angle) * sweepMag
-            );
-
-            // Current Control Points
-            let c1 = p5.Vector.lerp(p1_straight, c1_deformed, day.animProgress);
-            let c2 = p5.Vector.lerp(p2_straight, c2_deformed, day.animProgress);
-
-            // Style setup
-            let baseColor = day.data.sh === 1 ? color(74, 144, 217) : color(40, 40, 40);
-            
+            let baseColor;
             if (isSelected) {
-                baseColor.setAlpha(255);
-            } else if (day.hasBeenDiscovered) {
-                baseColor.setAlpha(100); 
+                baseColor = day.data.sh === 1 ? color(C_TEAL) : color(C_RUST);
+                baseColor.setAlpha(255); 
             } else {
-                baseColor.setAlpha(15);  
+                baseColor = color(C_BLACK);
+                baseColor.setAlpha(45);  
             }
             
             stroke(baseColor);
-            strokeWeight(1);
-            strokeCap(ROUND);
+            strokeWeight(0.6); 
+            noFill();
+            
+            beginShape(LINES);
 
-            // Render Generative Micro-strokes with Tapering
-            for (let strokeData of day.strokes) {
-                let t = strokeData.t;
+            for (let s of day.strokes) {
+                let t = s.t;
 
-                let pt = getBezierPoint(t, day.p0, c1, c2, day.p3);
-                let tan = getBezierTangent(t, day.p0, c1, c2, day.p3);
+                let pt = getSplinePoint(curPts, t);
+                let tan = getSplineTangent(curPts, t);
                 let nx = -tan.y;
                 let ny = tan.x;
 
-                // Tapering envelope (0 at ends, 1 in middle)
-                let envelope = sin(t * PI);
+                let envelope = sin(t * PI); 
 
-                // Apply envelope to turbulence so it pinches at the ends cleanly
-                let turbulenceMag = 18 * day.animProgress * envelope;
-                let turbulence = sin(t * TWO_PI * 3 - frameCount * 0.04 + strokeData.phase) * turbulenceMag;
+                let turbulenceMag = 15 * day.animProgress * envelope;
+                let turbulence = sin(t * TWO_PI * 4 - frameCount * 0.05 + s.phase) * turbulenceMag;
                 
-                // Apply envelope to the stroke offset to taper the overall width
-                let taperedOffset = strokeData.offset * envelope;
+                let spreadWidth = (48 + 0 * day.animProgress) * envelope; 
+                let finalOffset = (s.offsetNorm * spreadWidth) + turbulence;
 
-                let cxPos = pt.x + nx * (taperedOffset + turbulence);
-                let cyPos = pt.y + ny * (taperedOffset + turbulence);
+                let cxPos = pt.x + nx * finalOffset;
+                let cyPos = pt.y + ny * finalOffset;
 
-                let halfLen = strokeData.len / 2;
-                line(
-                    cxPos - tan.x * halfLen, cyPos - tan.y * halfLen,
-                    cxPos + tan.x * halfLen, cyPos + tan.y * halfLen
-                );
+                let halfLen = s.len / 2;
+                
+                vertex(cxPos - tan.x * halfLen, cyPos - tan.y * halfLen);
+                vertex(cxPos + tan.x * halfLen, cyPos + tan.y * halfLen);
             }
+            
+            endShape();
         }
 
-        // Mouse Interaction
         function mousePressed() {
-            let dToCenter = dist(mouseX, mouseY, cx, cy);
+            if (!document.getElementById('screen-2').classList.contains('active')) return true;
+
+            let mx = (mouseX - width / 2) / scaleF + cx;
+            let my = (mouseY - height / 2) / scaleF + cy;
+
+            let dToCenter = dist(mx, my, cx, cy);
             
-            // Interaction bounded inside the polygon
-            if (dToCenter < apothem + 20 && dToCenter > 10) {
-                let mouseAngle = atan2(mouseY - cy, mouseX - cx);
+            let apothem = R3 * cos(PI / 21);
+            if (dToCenter < apothem + 20 && dToCenter > R_hole - 10) {
+                let mouseAngle = atan2(my - cy, mx - cx);
                 let adjustedAngle = mouseAngle + HALF_PI;
                 if (adjustedAngle < 0) adjustedAngle += TWO_PI;
                 
-                let sliceWidth = TWO_PI / 20;
-                let clickedIndex = floor((adjustedAngle + sliceWidth / 2) / sliceWidth) % 20;
+                let sliceWidth = TWO_PI / 21;
+                let clickedIndex = floor((adjustedAngle + sliceWidth / 2) / sliceWidth) % 21;
 
                 if (selectedIndex !== clickedIndex) {
                     selectedIndex = clickedIndex;
                     updateInfoBox(clickedIndex);
+                } else {
+                    selectedIndex = null;
+                    infoBox.classList.remove('active');
                 }
             } else {
                 selectedIndex = null;
                 infoBox.classList.remove('active');
             }
+            
+            return false;
         }
 
         function updateInfoBox(index) {
             let d = days[index];
             
-            document.getElementById('box-day').innerText = `Day ${d.data.day}`;
+            document.getElementById('box-day').innerText = d.dateString;
             
             let shEl = document.getElementById('box-sh');
             if(d.data.sh === 1) {
-                shEl.innerText = 'SHOWER';
+                shEl.innerText = 'Shower';
                 shEl.className = 'shower-indicator shower-yes';
             } else {
-                shEl.innerText = 'NO SHOWER';
+                shEl.innerText = 'No shower';
                 shEl.className = 'shower-indicator shower-no';
             }
 
-            document.getElementById('box-vol').innerText = d.data.vol;
             document.getElementById('box-qual').innerText = d.data.qual;
+            document.getElementById('box-vol').innerText = d.data.vol;
             document.getElementById('box-neat').innerText = d.data.neat;
-            document.getElementById('box-sl').innerText = d.data.sl;
 
-            let boxRadius = R + 110;
-            let px = cx + boxRadius * cos(d.angle);
-            let py = cy + boxRadius * sin(d.angle);
-            
-            px = constrain(px, 100, W - 100);
-            py = constrain(py, 100, H - 100);
-
-            infoBox.style.left = `${px}px`;
-            infoBox.style.top = `${py}px`;
             infoBox.classList.add('active');
-        }
-
-        // Bezier Math
-        function getBezierPoint(t, p0, c1, c2, p3) {
-            let mt = 1 - t;
-            let x = mt*mt*mt*p0.x + 3*mt*mt*t*c1.x + 3*mt*t*t*c2.x + t*t*t*p3.x;
-            let y = mt*mt*mt*p0.y + 3*mt*mt*t*c1.y + 3*mt*t*t*c2.y + t*t*t*p3.y;
-            return createVector(x, y);
-        }
-
-        function getBezierTangent(t, p0, c1, c2, p3) {
-            let mt = 1 - t;
-            let dx = 3*mt*mt*(c1.x - p0.x) + 6*mt*t*(c2.x - c1.x) + 3*t*t*(p3.x - c2.x);
-            let dy = 3*mt*mt*(c1.y - p0.y) + 6*mt*t*(c2.y - c1.y) + 3*t*t*(p3.y - c2.y);
-            let len = sqrt(dx*dx + dy*dy) || 1;
-            return createVector(dx/len, dy/len);
         }
     </script>
 </body>

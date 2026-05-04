@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Mobile specific meta tags to prevent zooming and ensure proper app-like scaling -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Interactive Bedhead Flow Reveal</title>
     
@@ -13,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600&display=swap" rel="stylesheet">
     
     <style>
-        /* Strict sizing to fix any horizontal shift on mobile */
+        /* Strict global sizing to prevent any overflow or shifting */
         *, *::before, *::after {
             box-sizing: border-box;
         }
@@ -29,8 +28,9 @@
             flex-direction: column;
             height: 100vh;
             height: 100dvh; 
-            width: 100vw; 
-            overflow: hidden; /* Prevents the mobile shift */
+            width: 100%; 
+            max-width: 100vw;
+            overflow: hidden; 
         }
 
         /* Screen Transitions */
@@ -39,7 +39,7 @@
             flex-direction: column;
             width: 100%;
             height: 100%;
-            max-width: 800px;
+            max-width: 600px; /* Optimal reading width */
             margin: 0 auto;
             overflow: hidden; 
         }
@@ -48,43 +48,44 @@
             display: flex;
         }
 
-        /* Pure HTML/CSS Staggered Logo - Crimson Pro Light, Tilted, No Italics */
+        /* Pure HTML/CSS Staggered Logo - Crimson Pro Light */
         .logo-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             font-family: 'Crimson Pro', serif;
-            font-weight: 300; /* Light weight */
+            font-weight: 300; 
             line-height: 0.8;
+            user-select: none;
         }
 
-        /* Large Logo for Screen 1 */
+        /* Screen 1 Logo */
         .logo-large {
-            font-size: 100px;
+            font-size: 96px;
             margin-bottom: 20px;
         }
         .logo-large .l-bad { transform: translateX(-5px) rotate(-4deg); }
-        .logo-large .l-bed { transform: translateX(-25px) rotate(3deg); }
-        .logo-large .l-head { transform: translateX(18px) rotate(-3deg); }
+        .logo-large .l-bed { transform: translateX(-30px) rotate(2deg); }
+        .logo-large .l-head { transform: translateX(18px) rotate(-2deg); }
 
-        /* Smaller Logo for Screen 2 */
+        /* Screen 2 Logo */
         .logo-small {
-            font-size: 32px; /* Shrunk down as requested */
-            margin-top: 20px;
-            margin-bottom: 0px;
+            font-size: 38px;
+            margin-top: 25px;
+            margin-bottom: 10px;
             align-self: center;
+            flex-shrink: 0; /* Prevents logo from crushing */
         }
         .logo-small .l-bad { transform: translateX(-2px) rotate(-4deg); }
-        .logo-small .l-bed { transform: translateX(-10px) rotate(3deg); }
-        .logo-small .l-head { transform: translateX(8px) rotate(-3deg); }
+        .logo-small .l-bed { transform: translateX(-12px) rotate(2deg); }
+        .logo-small .l-head { transform: translateX(8px) rotate(-2deg); }
 
         /* Shared Logo Colors */
         .l-bad { color: #b45743; display: inline-block; z-index: 3; }
         .l-bed { color: #1e8eb4; display: inline-block; font-style: normal; z-index: 2; }
         .l-head { color: #000000; display: inline-block; z-index: 1; }
 
-
-        /* Screen 1 specific elements */
+        /* Screen 1 layout */
         #screen-1 {
             justify-content: center;
             align-items: center;
@@ -114,7 +115,7 @@
             outline: none;
         }
 
-        /* Screen 2 specific elements */
+        /* Screen 2 layout */
         #app-container {
             position: relative;
             flex-grow: 1; 
@@ -123,6 +124,9 @@
             width: 100%;
             overflow: hidden;
             touch-action: none; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         canvas {
@@ -131,34 +135,33 @@
             outline: none;
         }
 
-        /* Dedicated Bottom Info Panel - Height reduced to bring content up */
+        /* Dedicated Bottom Info Panel */
         #info-panel {
-            height: 140px; 
+            height: 180px; /* Fixed height guarantees no layout jumping */
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-end; 
-            padding: 5px 20px 20px;
+            justify-content: flex-start; 
+            padding: 10px 20px;
             background-color: #ffffff;
             z-index: 10;
             width: 100%;
+            position: relative;
         }
 
         #data-display {
-            display: none;
+            display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
-            max-width: 450px; 
-            margin-bottom: 15px; 
+            max-width: 400px; 
             opacity: 0; 
             transition: opacity 0.3s ease;
-            pointer-events: none;
+            pointer-events: none; /* Let clicks pass through if needed */
         }
 
         #data-display.active {
-            display: flex;
             opacity: 1;
         }
 
@@ -167,31 +170,31 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 20px;
         }
 
         #box-day {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 400;
             color: #000000;
-            line-height: 1.2;
+            line-height: 1.1;
         }
 
         #box-sh {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 400;
-            line-height: 1.2;
-            margin-top: 2px;
+            line-height: 1.1;
+            margin-top: 4px;
         }
 
         .shower-yes { color: #1e8eb4; } 
         .shower-no { color: #b45743; } 
 
-        /* Horizontal Layout for Stats - All in one line */
+        /* Horizontal Layout for Stats - All in one clean line */
         .stats-row {
             display: flex;
             flex-direction: row;
-            justify-content: space-around; 
+            justify-content: space-between; 
             width: 100%;
             padding: 0 10px;
         }
@@ -200,6 +203,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 80px; /* Uniform width keeps columns neatly aligned */
         }
 
         .stat-lbl {
@@ -217,12 +221,14 @@
 
         /* Persistent Instruction Message */
         #instruction-msg {
-            font-size: 15px;
+            font-size: 16px;
             color: #1e8eb4;
             font-weight: 300;
             text-align: center;
             position: absolute;
-            bottom: 20px; 
+            bottom: 25px; /* Locked nicely at the bottom */
+            width: 100%;
+            left: 0;
         }
 
     </style>
@@ -242,19 +248,20 @@
 
     <!-- SCREEN 2: Interactive Visualization -->
     <div id="screen-2" class="screen">
-        <!-- Smaller Logo on top -->
+        <!-- Logo -->
         <div class="logo-container logo-small">
             <span class="l-bad">bad</span>
             <span class="l-bed">bed</span>
             <span class="l-head">head</span>
         </div>
 
+        <!-- Chart Container -->
         <div id="app-container">
             <!-- p5 canvas injects here -->
         </div>
 
+        <!-- Fixed Data Panel -->
         <div id="info-panel">
-            <!-- Data Display positioned tightly to bring it visually up -->
             <div id="data-display">
                 <div class="date-row">
                     <span id="box-day">25/3</span>
@@ -277,7 +284,6 @@
                 </div>
             </div>
 
-            <!-- Instruction Text -->
             <div id="instruction-msg">Tap on the Hair Strands to read the data</div>
         </div>
     </div>
@@ -324,11 +330,10 @@
         const vW = 1000, vH = 1000;
         const cx = vW / 2, cy = vH / 2;
         
-        // Inner and outer boundaries
         let R_hole = 40; 
-        let R1 = 146;
-        let R2 = 253;
-        let R3 = 360; 
+        let R1 = 135;
+        let R2 = 230;
+        let R3 = 325; 
         let radiiMap = { 1: R1, 2: R2, 3: R3 };
         
         let days = [];
@@ -354,9 +359,10 @@
 
             let centralAngle = TWO_PI / 21;
 
-            let q_ang = -HALF_PI + TWO_PI/6;     
-            let v_ang = -HALF_PI + 3*TWO_PI/6;   
-            let n_ang = -HALF_PI + 5*TWO_PI/6;   
+            // Map sectors perfectly to layout
+            let q_ang = -HALF_PI + TWO_PI/6;      // Top Right
+            let v_ang = HALF_PI;                  // Bottom
+            let n_ang = -HALF_PI + 5*TWO_PI/6;    // Top Left
 
             for (let i = 0; i < 21; i++) {
                 let d = rawData[i];
@@ -480,7 +486,7 @@
             clear();
             background(255);
             
-            // Adjust scaling
+            // Adjust scaling so chart perfectly fits inside flex container
             scaleF = Math.min(width / vW, height / vH) * 0.95; 
 
             push();
@@ -527,34 +533,37 @@
                 renderStrand(selectedIndex, true);
             }
 
-            // 6. Labels - Mapped using the requested angles
+            // 6. Labels - Perfectly Horizontal for max readability
             drawingContext.textAlign = "center";
             drawingContext.textBaseline = "middle";
-            drawingContext.fillStyle = "rgba(0, 0, 0, 0.5)";
+            drawingContext.fillStyle = "rgba(0, 0, 0, 0.4)";
+            drawingContext.font = "300 " + (18 / fontScale) + "px 'Crimson Pro'";
+            let sectorLabelRadius = R3 + 45; 
             
-            // Reduced font size as requested
-            drawingContext.font = "300 " + (15 / fontScale) + "px 'Crimson Pro'";
-            let sectorLabelRadius = R3 + 30; 
-            
-            // Quality mapped to the requested angle
-            push();
-            translate(cx + sectorLabelRadius * cos(-HALF_PI + TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + TWO_PI/6));
-            rotate(radians(42.937)); // Explicitly matches downward tilt
-            drawingContext.fillText("Quality", 0, 0);
-            pop();
+            // Quality (Top Right)
+            drawingContext.fillText("Quality", cx + sectorLabelRadius * cos(-HALF_PI + TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + TWO_PI/6));
 
-            // Volume is horizontal at the bottom
-            push();
-            translate(cx + sectorLabelRadius * cos(HALF_PI), cy + sectorLabelRadius * sin(HALF_PI));
-            drawingContext.fillText("Volume", 0, 0);
-            pop();
+            // Volume (Bottom Center)
+            drawingContext.fillText("Volume", cx + sectorLabelRadius * cos(HALF_PI), cy + sectorLabelRadius * sin(HALF_PI));
 
-            // Neatness mapped to the requested angle
-            push();
-            translate(cx + sectorLabelRadius * cos(-HALF_PI + 5*TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + 5*TWO_PI/6));
-            rotate(radians(317.063)); // Explicitly matches upward tilt
-            drawingContext.fillText("Neatness", 0, 0);
-            pop();
+            // Neatness (Top Left)
+            drawingContext.fillText("Neatness", cx + sectorLabelRadius * cos(-HALF_PI + 5*TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + 5*TWO_PI/6));
+
+            // Outer Day Dates (Tiny, clean horizontal tags)
+            for (let i = 0; i < 21; i++) {
+                let d = days[i];
+                let lx = cx + (R3 + 15) * cos(d.a_base); 
+                let ly = cy + (R3 + 15) * sin(d.a_base);
+                
+                if (i === selectedIndex) {
+                    drawingContext.fillStyle = "rgb(0, 0, 0)";
+                    drawingContext.font = "400 " + (16 / fontScale) + "px 'Crimson Pro'";
+                } else {
+                    drawingContext.fillStyle = "rgba(0, 0, 0, 0.25)"; 
+                    drawingContext.font = "300 " + (11 / fontScale) + "px 'Crimson Pro'";
+                }
+                drawingContext.fillText(d.dateString, lx, ly);
+            }
 
             pop();
         }
@@ -576,7 +585,7 @@
                 baseColor.setAlpha(255); 
             } else {
                 baseColor = color(C_BLACK);
-                baseColor.setAlpha(12); // Kept very faint to clean up background
+                baseColor.setAlpha(12); // Extemely faint for minimal uncluttered look
             }
             
             stroke(baseColor);
@@ -622,7 +631,7 @@
             let dToCenter = dist(mx, my, cx, cy);
             
             let apothem = R3 * cos(PI / 21);
-            if (dToCenter < apothem + 20 && dToCenter > R_hole - 10) {
+            if (dToCenter < apothem + 30 && dToCenter > R_hole - 10) {
                 let mouseAngle = atan2(my - cy, mx - cx);
                 let adjustedAngle = mouseAngle + HALF_PI;
                 if (adjustedAngle < 0) adjustedAngle += TWO_PI;

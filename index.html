@@ -30,7 +30,7 @@
             height: 100dvh; 
             width: 100%; 
             max-width: 100vw;
-            overflow: hidden; 
+            overflow: hidden; /* Prevents the mobile shift */
         }
 
         /* Screen Transitions */
@@ -39,7 +39,7 @@
             flex-direction: column;
             width: 100%;
             height: 100%;
-            max-width: 600px; /* Optimal reading width */
+            max-width: 800px;
             margin: 0 auto;
             overflow: hidden; 
         }
@@ -48,44 +48,43 @@
             display: flex;
         }
 
-        /* Pure HTML/CSS Staggered Logo - Crimson Pro Light */
+        /* Pure HTML/CSS Staggered Logo - Crimson Pro Light, Tilted, No Italics */
         .logo-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             font-family: 'Crimson Pro', serif;
-            font-weight: 300; 
+            font-weight: 300; /* Light weight */
             line-height: 0.8;
-            user-select: none;
         }
 
-        /* Screen 1 Logo */
+        /* Large Logo for Screen 1 */
         .logo-large {
-            font-size: 96px;
+            font-size: 100px;
             margin-bottom: 20px;
         }
         .logo-large .l-bad { transform: translateX(-5px) rotate(-4deg); }
-        .logo-large .l-bed { transform: translateX(-30px) rotate(2deg); }
-        .logo-large .l-head { transform: translateX(18px) rotate(-2deg); }
+        .logo-large .l-bed { transform: translateX(-25px) rotate(3deg); }
+        .logo-large .l-head { transform: translateX(18px) rotate(-3deg); }
 
-        /* Screen 2 Logo */
+        /* Smaller Logo for Screen 2 */
         .logo-small {
-            font-size: 38px;
-            margin-top: 25px;
-            margin-bottom: 10px;
+            font-size: 32px; /* Shrunk down as requested */
+            margin-top: 20px;
+            margin-bottom: 0px;
             align-self: center;
-            flex-shrink: 0; /* Prevents logo from crushing */
         }
         .logo-small .l-bad { transform: translateX(-2px) rotate(-4deg); }
-        .logo-small .l-bed { transform: translateX(-12px) rotate(2deg); }
-        .logo-small .l-head { transform: translateX(8px) rotate(-2deg); }
+        .logo-small .l-bed { transform: translateX(-10px) rotate(3deg); }
+        .logo-small .l-head { transform: translateX(8px) rotate(-3deg); }
 
         /* Shared Logo Colors */
         .l-bad { color: #b45743; display: inline-block; z-index: 3; }
         .l-bed { color: #1e8eb4; display: inline-block; font-style: normal; z-index: 2; }
         .l-head { color: #000000; display: inline-block; z-index: 1; }
 
-        /* Screen 1 layout */
+
+        /* Screen 1 specific elements */
         #screen-1 {
             justify-content: center;
             align-items: center;
@@ -115,7 +114,7 @@
             outline: none;
         }
 
-        /* Screen 2 layout */
+        /* Screen 2 specific elements */
         #app-container {
             position: relative;
             flex-grow: 1; 
@@ -124,9 +123,6 @@
             width: 100%;
             overflow: hidden;
             touch-action: none; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
 
         canvas {
@@ -135,15 +131,15 @@
             outline: none;
         }
 
-        /* Dedicated Bottom Info Panel */
+        /* Dedicated Bottom Info Panel - Height adjusted to bring content up cleanly */
         #info-panel {
-            height: 180px; /* Fixed height guarantees no layout jumping */
+            height: 160px; 
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start; 
-            padding: 10px 20px;
+            justify-content: flex-end; 
+            padding: 5px 20px 20px;
             background-color: #ffffff;
             z-index: 10;
             width: 100%;
@@ -151,17 +147,19 @@
         }
 
         #data-display {
-            display: flex;
+            display: none;
             flex-direction: column;
             align-items: center;
             width: 100%;
-            max-width: 400px; 
+            max-width: 450px; 
+            margin-bottom: 40px; /* Pushed significantly further up */
             opacity: 0; 
             transition: opacity 0.3s ease;
-            pointer-events: none; /* Let clicks pass through if needed */
+            pointer-events: none;
         }
 
         #data-display.active {
+            display: flex;
             opacity: 1;
         }
 
@@ -170,31 +168,31 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
 
         #box-day {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 400;
             color: #000000;
-            line-height: 1.1;
+            line-height: 1.2;
         }
 
         #box-sh {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 400;
-            line-height: 1.1;
-            margin-top: 4px;
+            line-height: 1.2;
+            margin-top: 2px;
         }
 
         .shower-yes { color: #1e8eb4; } 
         .shower-no { color: #b45743; } 
 
-        /* Horizontal Layout for Stats - All in one clean line */
+        /* Horizontal Layout for Stats - All in one line */
         .stats-row {
             display: flex;
             flex-direction: row;
-            justify-content: space-between; 
+            justify-content: space-around; 
             width: 100%;
             padding: 0 10px;
         }
@@ -203,7 +201,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 80px; /* Uniform width keeps columns neatly aligned */
         }
 
         .stat-lbl {
@@ -221,14 +218,12 @@
 
         /* Persistent Instruction Message */
         #instruction-msg {
-            font-size: 16px;
+            font-size: 15px;
             color: #1e8eb4;
             font-weight: 300;
             text-align: center;
             position: absolute;
-            bottom: 25px; /* Locked nicely at the bottom */
-            width: 100%;
-            left: 0;
+            bottom: 20px; 
         }
 
     </style>
@@ -248,20 +243,19 @@
 
     <!-- SCREEN 2: Interactive Visualization -->
     <div id="screen-2" class="screen">
-        <!-- Logo -->
+        <!-- Smaller Logo on top -->
         <div class="logo-container logo-small">
             <span class="l-bad">bad</span>
             <span class="l-bed">bed</span>
             <span class="l-head">head</span>
         </div>
 
-        <!-- Chart Container -->
         <div id="app-container">
             <!-- p5 canvas injects here -->
         </div>
 
-        <!-- Fixed Data Panel -->
         <div id="info-panel">
+            <!-- Data Display positioned tightly to bring it visually up -->
             <div id="data-display">
                 <div class="date-row">
                     <span id="box-day">25/3</span>
@@ -284,6 +278,7 @@
                 </div>
             </div>
 
+            <!-- Instruction Text -->
             <div id="instruction-msg">Tap on the Hair Strands to read the data</div>
         </div>
     </div>
@@ -330,10 +325,11 @@
         const vW = 1000, vH = 1000;
         const cx = vW / 2, cy = vH / 2;
         
+        // Inner and outer boundaries
         let R_hole = 40; 
-        let R1 = 135;
-        let R2 = 230;
-        let R3 = 325; 
+        let R1 = 146;
+        let R2 = 253;
+        let R3 = 360; 
         let radiiMap = { 1: R1, 2: R2, 3: R3 };
         
         let days = [];
@@ -359,10 +355,9 @@
 
             let centralAngle = TWO_PI / 21;
 
-            // Map sectors perfectly to layout
-            let q_ang = -HALF_PI + TWO_PI/6;      // Top Right
-            let v_ang = HALF_PI;                  // Bottom
-            let n_ang = -HALF_PI + 5*TWO_PI/6;    // Top Left
+            let q_ang = -HALF_PI + TWO_PI/6;     
+            let v_ang = -HALF_PI + 3*TWO_PI/6;   
+            let n_ang = -HALF_PI + 5*TWO_PI/6;   
 
             for (let i = 0; i < 21; i++) {
                 let d = rawData[i];
@@ -486,8 +481,8 @@
             clear();
             background(255);
             
-            // Adjust scaling so chart perfectly fits inside flex container
-            scaleF = Math.min(width / vW, height / vH) * 0.95; 
+            // Scaled slightly smaller to guarantee text at the edges never clips
+            scaleF = Math.min(width / vW, height / vH) * 0.88; 
 
             push();
             translate(width / 2, height / 2);
@@ -533,34 +528,47 @@
                 renderStrand(selectedIndex, true);
             }
 
-            // 6. Labels - Perfectly Horizontal for max readability
+            // 6. Labels - Mapped using the requested angles
             drawingContext.textAlign = "center";
             drawingContext.textBaseline = "middle";
-            drawingContext.fillStyle = "rgba(0, 0, 0, 0.4)";
-            drawingContext.font = "300 " + (18 / fontScale) + "px 'Crimson Pro'";
-            let sectorLabelRadius = R3 + 45; 
+            drawingContext.fillStyle = "rgba(0, 0, 0, 0.5)";
             
-            // Quality (Top Right)
-            drawingContext.fillText("Quality", cx + sectorLabelRadius * cos(-HALF_PI + TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + TWO_PI/6));
+            // Further reduced font size and pushed outward to prevent overlap
+            drawingContext.font = "300 " + (13 / fontScale) + "px 'Crimson Pro'";
+            let sectorLabelRadius = R3 + 65; 
+            
+            // Quality mapped to the requested angle
+            push();
+            translate(cx + sectorLabelRadius * cos(-HALF_PI + TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + TWO_PI/6));
+            rotate(radians(42.937)); 
+            drawingContext.fillText("Quality", 0, 0);
+            pop();
 
-            // Volume (Bottom Center)
-            drawingContext.fillText("Volume", cx + sectorLabelRadius * cos(HALF_PI), cy + sectorLabelRadius * sin(HALF_PI));
+            // Volume is horizontal at the bottom
+            push();
+            translate(cx + sectorLabelRadius * cos(HALF_PI), cy + sectorLabelRadius * sin(HALF_PI));
+            drawingContext.fillText("Volume", 0, 0);
+            pop();
 
-            // Neatness (Top Left)
-            drawingContext.fillText("Neatness", cx + sectorLabelRadius * cos(-HALF_PI + 5*TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + 5*TWO_PI/6));
+            // Neatness mapped to the requested angle
+            push();
+            translate(cx + sectorLabelRadius * cos(-HALF_PI + 5*TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + 5*TWO_PI/6));
+            rotate(radians(317.063)); 
+            drawingContext.fillText("Neatness", 0, 0);
+            pop();
 
-            // Outer Day Dates (Tiny, clean horizontal tags)
+            // Outer Day Dates (Moved outward to R3 + 32, font slightly smaller)
             for (let i = 0; i < 21; i++) {
                 let d = days[i];
-                let lx = cx + (R3 + 15) * cos(d.a_base); 
-                let ly = cy + (R3 + 15) * sin(d.a_base);
+                let lx = cx + (R3 + 32) * cos(d.a_base); 
+                let ly = cy + (R3 + 32) * sin(d.a_base);
                 
                 if (i === selectedIndex) {
                     drawingContext.fillStyle = "rgb(0, 0, 0)";
-                    drawingContext.font = "400 " + (16 / fontScale) + "px 'Crimson Pro'";
+                    drawingContext.font = "400 " + (14 / fontScale) + "px 'Crimson Pro'";
                 } else {
-                    drawingContext.fillStyle = "rgba(0, 0, 0, 0.25)"; 
-                    drawingContext.font = "300 " + (11 / fontScale) + "px 'Crimson Pro'";
+                    drawingContext.fillStyle = "rgba(0, 0, 0, 0.4)"; 
+                    drawingContext.font = "300 " + (10 / fontScale) + "px 'Crimson Pro'";
                 }
                 drawingContext.fillText(d.dateString, lx, ly);
             }

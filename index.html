@@ -30,7 +30,7 @@
             height: 100dvh; 
             width: 100%; 
             max-width: 100vw;
-            overflow: hidden; /* Prevents the mobile shift */
+            overflow: hidden; 
         }
 
         /* Screen Transitions */
@@ -42,23 +42,46 @@
             max-width: 800px;
             margin: 0 auto;
             overflow: hidden; 
+            position: relative;
         }
 
         .screen.active {
             display: flex;
         }
 
-        /* Pure HTML/CSS Staggered Logo - Crimson Pro Light, Tilted, No Italics */
+        /* Subtle Export Button */
+        #export-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'Crimson Pro', serif;
+            font-size: 14px;
+            color: #888888;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid #e6e0d8;
+            border-radius: 20px;
+            padding: 6px 14px;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.2s ease;
+        }
+
+        #export-btn:hover {
+            color: #000000;
+            border-color: #000000;
+        }
+
+        /* Pure HTML/CSS Staggered Logo */
         .logo-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             font-family: 'Crimson Pro', serif;
-            font-weight: 300; /* Light weight */
+            font-weight: 300; 
             line-height: 0.8;
+            user-select: none;
         }
 
-        /* Large Logo for Screen 1 */
         .logo-large {
             font-size: 100px;
             margin-bottom: 20px;
@@ -67,9 +90,8 @@
         .logo-large .l-bed { transform: translateX(-25px) rotate(3deg); }
         .logo-large .l-head { transform: translateX(18px) rotate(-3deg); }
 
-        /* Smaller Logo for Screen 2 */
         .logo-small {
-            font-size: 32px; /* Shrunk down as requested */
+            font-size: 32px; 
             margin-top: 20px;
             margin-bottom: 0px;
             align-self: center;
@@ -78,11 +100,9 @@
         .logo-small .l-bed { transform: translateX(-10px) rotate(3deg); }
         .logo-small .l-head { transform: translateX(8px) rotate(-3deg); }
 
-        /* Shared Logo Colors */
         .l-bad { color: #b45743; display: inline-block; z-index: 3; }
         .l-bed { color: #1e8eb4; display: inline-block; font-style: normal; z-index: 2; }
         .l-head { color: #000000; display: inline-block; z-index: 1; }
-
 
         /* Screen 1 specific elements */
         #screen-1 {
@@ -131,15 +151,14 @@
             outline: none;
         }
 
-        /* Dedicated Bottom Info Panel - Height adjusted to bring content up cleanly */
         #info-panel {
-            height: 180px; /* Increased to lift panel further up */
+            height: 180px; 
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-end; 
-            padding: 5px 20px 20px;
+            justify-content: center; 
+            padding: 10px 20px;
             background-color: #ffffff;
             z-index: 10;
             width: 100%;
@@ -147,23 +166,21 @@
         }
 
         #data-display {
-            display: none;
+            display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
             max-width: 450px; 
-            margin-bottom: 50px; /* Pushed significantly further up to avoid instruction overlap */
+            margin-bottom: 25px; 
             opacity: 0; 
             transition: opacity 0.3s ease;
             pointer-events: none;
         }
 
         #data-display.active {
-            display: flex;
             opacity: 1;
         }
 
-        /* Top Row of Data (Date + Shower) */
         .date-row {
             display: flex;
             flex-direction: column;
@@ -188,7 +205,6 @@
         .shower-yes { color: #1e8eb4; } 
         .shower-no { color: #b45743; } 
 
-        /* Horizontal Layout for Stats - All in one line */
         .stats-row {
             display: flex;
             flex-direction: row;
@@ -216,14 +232,11 @@
             color: #000000; 
         }
 
-        /* Persistent Instruction Message */
         #instruction-msg {
             font-size: 15px;
             color: #1e8eb4;
             font-weight: 300;
             text-align: center;
-            position: absolute;
-            bottom: 25px; /* Lifted slightly */
         }
 
     </style>
@@ -243,6 +256,8 @@
 
     <!-- SCREEN 2: Interactive Visualization -->
     <div id="screen-2" class="screen">
+        <button id="export-btn">Download 4K</button>
+
         <!-- Smaller Logo on top -->
         <div class="logo-container logo-small">
             <span class="l-bad">bad</span>
@@ -255,7 +270,6 @@
         </div>
 
         <div id="info-panel">
-            <!-- Data Display positioned tightly to bring it visually up -->
             <div id="data-display">
                 <div class="date-row">
                     <span id="box-day">25/3</span>
@@ -319,13 +333,12 @@
         const C_BEIGE = '#e6e0d8'; 
         const C_RUST  = '#b45743';
         const C_TEAL  = '#1e8eb4';
-        const C_BLACK = '#222222'; // Darker base color for the straight ribbons
+        const C_BLACK = '#222222'; 
 
         // Virtual Coordinate System
         const vW = 1000, vH = 1000;
         const cx = vW / 2, cy = vH / 2;
         
-        // Inner and outer boundaries
         let R_hole = 40; 
         let R1 = 146;
         let R2 = 253;
@@ -336,14 +349,32 @@
         let selectedIndex = null;
         let container;
         let scaleF = 1; 
+        let isExporting = false;
 
-        // Navigation Logic
+        // UI Event Listeners
         document.getElementById('start-btn').addEventListener('click', (e) => {
             e.preventDefault();
             document.getElementById('screen-1').classList.remove('active');
             document.getElementById('screen-2').classList.add('active');
-            windowResized(); // Forces p5 canvas to size properly
+            windowResized(); 
         });
+
+        // 4K Export Logic
+        document.getElementById('export-btn').addEventListener('click', () => {
+            let currentW = width;
+            let currentH = height;
+            
+            isExporting = true; // Flag tells draw loop to skip text rendering
+            resizeCanvas(4000, 4000); 
+            draw(); 
+            
+            saveCanvas('bad_bed_head_visualization', 'png');
+            
+            isExporting = false; // Turn text back on
+            resizeCanvas(currentW, currentH);
+            draw();
+        });
+
 
         function setup() {
             container = document.getElementById('app-container');
@@ -481,15 +512,13 @@
             clear();
             background(255);
             
-            // Scaled slightly smaller to guarantee text at the edges never clips
-            scaleF = Math.min(width / vW, height / vH) * 0.80; 
+            scaleF = Math.min(width / vW, height / vH) * 0.90; 
 
             push();
             translate(width / 2, height / 2);
             scale(scaleF);
             translate(-cx, -cy);
 
-            // 1. Draw solid Beige Icosagon base
             fill(color(C_BEIGE));
             drawPolygon(R3, false); 
             beginShape();
@@ -499,14 +528,11 @@
             }
             endShape(CLOSE);
 
-            // 2. Draw Center Hole lines
             drawPolygon(R_hole, true);
 
-            // 3. Draw faint interior guide rings
             noFill();
             [R1, R2].forEach(r => drawPolygon(r, true));
 
-            // 4. Draw Sector Dividers
             stroke(color(0, 0, 0, 20));
             strokeWeight(1.2);
             let sectorAngles = [
@@ -528,49 +554,50 @@
                 renderStrand(selectedIndex, true);
             }
 
-            // 6. Labels - Mapped using the requested angles
-            drawingContext.textAlign = "center";
-            drawingContext.textBaseline = "middle";
-            drawingContext.fillStyle = "rgba(0, 0, 0, 0.5)";
-            
-            // Reduced font size and pushed significantly further outward to prevent overlap
-            drawingContext.font = "300 " + (12 / fontScale) + "px 'Crimson Pro'";
-            let sectorLabelRadius = R3 + 90; 
-            
-            // Quality mapped to the requested angle
-            push();
-            translate(cx + sectorLabelRadius * cos(-HALF_PI + TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + TWO_PI/6));
-            rotate(radians(42.937)); 
-            drawingContext.fillText("Quality", 0, 0);
-            pop();
-
-            // Volume is horizontal at the bottom
-            push();
-            translate(cx + sectorLabelRadius * cos(HALF_PI), cy + sectorLabelRadius * sin(HALF_PI));
-            drawingContext.fillText("Volume", 0, 0);
-            pop();
-
-            // Neatness mapped to the requested angle
-            push();
-            translate(cx + sectorLabelRadius * cos(-HALF_PI + 5*TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + 5*TWO_PI/6));
-            rotate(radians(317.063)); 
-            drawingContext.fillText("Neatness", 0, 0);
-            pop();
-
-            // Outer Day Dates (Moved further outward)
-            for (let i = 0; i < 21; i++) {
-                let d = days[i];
-                let lx = cx + (R3 + 50) * cos(d.a_base); 
-                let ly = cy + (R3 + 50) * sin(d.a_base);
+            // Only draw text and labels if we are not currently saving the 4K poster
+            if (!isExporting) {
+                // 6. Labels - Perfectly straight and horizontal
+                drawingContext.textAlign = "center";
+                drawingContext.textBaseline = "middle";
+                drawingContext.fillStyle = "rgba(0, 0, 0, 0.6)";
                 
-                if (i === selectedIndex) {
-                    drawingContext.fillStyle = "rgb(0, 0, 0)";
-                    drawingContext.font = "400 " + (14 / fontScale) + "px 'Crimson Pro'";
-                } else {
-                    drawingContext.fillStyle = "rgba(0, 0, 0, 0.4)"; 
-                    drawingContext.font = "300 " + (10 / fontScale) + "px 'Crimson Pro'";
+                // Adjusted font size and spacing
+                drawingContext.font = "300 " + (15 / fontScale) + "px 'Crimson Pro'";
+                let sectorLabelRadius = R3 + 60; 
+                
+                // Quality 
+                push();
+                translate(cx + sectorLabelRadius * cos(-HALF_PI + TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + TWO_PI/6));
+                drawingContext.fillText("Quality", 0, 0);
+                pop();
+
+                // Volume is horizontal at the bottom
+                push();
+                translate(cx + sectorLabelRadius * cos(HALF_PI), cy + sectorLabelRadius * sin(HALF_PI));
+                drawingContext.fillText("Volume", 0, 0);
+                pop();
+
+                // Neatness 
+                push();
+                translate(cx + sectorLabelRadius * cos(-HALF_PI + 5*TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + 5*TWO_PI/6));
+                drawingContext.fillText("Neatness", 0, 0);
+                pop();
+
+                // Outer Day Dates (Moved further outward)
+                for (let i = 0; i < 21; i++) {
+                    let d = days[i];
+                    let lx = cx + (R3 + 50) * cos(d.a_base); 
+                    let ly = cy + (R3 + 50) * sin(d.a_base);
+                    
+                    if (i === selectedIndex) {
+                        drawingContext.fillStyle = "rgb(0, 0, 0)";
+                        drawingContext.font = "400 " + (14 / fontScale) + "px 'Crimson Pro'";
+                    } else {
+                        drawingContext.fillStyle = "rgba(0, 0, 0, 0.4)"; 
+                        drawingContext.font = "300 " + (10 / fontScale) + "px 'Crimson Pro'";
+                    }
+                    drawingContext.fillText(d.dateString, lx, ly);
                 }
-                drawingContext.fillText(d.dateString, lx, ly);
             }
 
             pop();
@@ -593,7 +620,7 @@
                 baseColor.setAlpha(255); 
             } else {
                 baseColor = color(C_BLACK);
-                baseColor.setAlpha(25); // Darker base for straight ribbons for stronger contrast
+                baseColor.setAlpha(25); // Darker base for straight ribbons
             }
             
             stroke(baseColor);
@@ -632,6 +659,7 @@
 
         function mousePressed() {
             if (!document.getElementById('screen-2').classList.contains('active')) return true;
+            if (mouseY < 50) return true; // prevent canvas interaction when tapping export button
 
             let mx = (mouseX - width / 2) / scaleF + cx;
             let my = (mouseY - height / 2) / scaleF + cy;

@@ -260,7 +260,6 @@
     <div id="screen-2" class="screen">
         <button id="export-btn">Download 4K</button>
 
-        <!-- Smaller Logo on top -->
         <div class="logo-container logo-small">
             <span class="l-bad">bad</span>
             <span class="l-bed">bed</span>
@@ -271,8 +270,6 @@
             <!-- p5 canvas injects here -->
         </div>
 
-        <!-- TWO DISTINCT PANELS -->
-        
         <!-- Panel 1: Data Display (Raised) -->
         <div id="data-panel">
             <div class="date-row">
@@ -370,7 +367,7 @@
             let currentW = width;
             let currentH = height;
             
-            isExporting = true; // Flag tells draw loop to skip text rendering and centering offset
+            isExporting = true; 
             resizeCanvas(4000, 4000); 
             draw(); 
             
@@ -417,6 +414,7 @@
                 let a2 = a_base + 2 * TWO_PI / 3;
                 let a3 = a_base + TWO_PI; 
 
+                // Deformed Control Points
                 let pts_deformed = [];
                 pts_deformed.push(createVector(cx + (R_hole - 20) * cos(a0 - 0.5), cy + (R_hole - 20) * sin(a0 - 0.5)));
                 pts_deformed.push(createVector(cx + R_hole * cos(a0), cy + R_hole * sin(a0)));
@@ -425,6 +423,7 @@
                 pts_deformed.push(createVector(cx + radiiMap[d[param3]] * cos(a3), cy + radiiMap[d[param3]] * sin(a3)));
                 pts_deformed.push(createVector(cx + (radiiMap[d[param3]] + 40) * cos(a3 + 0.5), cy + (radiiMap[d[param3]] + 40) * sin(a3 + 0.5)));
 
+                // Straight Control Points
                 let pts_straight = [];
                 let r_step = (R3 - R_hole) / 3; 
                 pts_straight.push(createVector(cx + (R_hole - 20) * cos(a_base), cy + (R_hole - 20) * sin(a_base)));
@@ -434,19 +433,37 @@
                 pts_straight.push(createVector(cx + R3 * cos(a_base), cy + R3 * sin(a_base)));
                 pts_straight.push(createVector(cx + (R3 + 40) * cos(a_base), cy + (R3 + 40) * sin(a_base)));
 
+                // OPTIMIZATION: Pre-calculate the geometry for EVERY microstroke.
+                // This completely removes expensive spline math from the drawing loop.
                 let strokes = [];
-                let numStrokes = 2000; 
+                let numStrokes = 1500; 
                 
                 for (let j = 0; j < numStrokes; j++) {
                     let u = 1 - Math.random(); 
                     let v = Math.random();
                     let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
                     
+                    let t = Math.random();
+                    
+                    // Evaluate standard Spline math once during setup
+                    let ptS = getSplinePoint(pts_straight, t);
+                    let tanS = getSplineTangent(pts_straight, t);
+                    
+                    let ptD = getSplinePoint(pts_deformed, t);
+                    let tanD = getSplineTangent(pts_deformed, t);
+                    
+                    let envelope = Math.sin(t * Math.PI); // Cache sine envelope
+
                     strokes.push({
-                        t: Math.random(), 
+                        t: t, 
                         offsetNorm: z * 0.25, 
-                        len: random(3, 8), 
-                        phase: random(TWO_PI)
+                        halfLen: random(3, 8) / 2, 
+                        phase: random(TWO_PI),
+                        env: envelope,
+                        ptS: ptS,
+                        tanS: tanS,
+                        ptD: ptD,
+                        tanD: tanD
                     });
                 }
 
@@ -454,8 +471,6 @@
                     data: d,
                     dateString: dates[i],
                     a_base: a_base,
-                    pts_deformed: pts_deformed,
-                    pts_straight: pts_straight,
                     strokes: strokes,
                     animProgress: 0
                 });
@@ -468,16 +483,14 @@
             }
         }
 
+        // Catmull-Rom Spline Math Helpers
         function getSplinePoint(pts, t) {
             let numSegments = pts.length - 3; 
             let segment = Math.floor(t * numSegments);
             if (segment >= numSegments) segment = numSegments - 1;
             let localT = (t * numSegments) - segment;
 
-            let p0 = pts[segment];
-            let p1 = pts[segment + 1];
-            let p2 = pts[segment + 2];
-            let p3 = pts[segment + 3];
+            let p0 = pts[segment], p1 = pts[segment + 1], p2 = pts[segment + 2], p3 = pts[segment + 3];
 
             let x = curvePoint(p0.x, p1.x, p2.x, p3.x, localT);
             let y = curvePoint(p0.y, p1.y, p2.y, p3.y, localT);
@@ -487,15 +500,12 @@
         function getSplineTangent(pts, t) {
             let t1 = t;
             let t2 = t + 0.001;
-            if (t2 > 1) {
-                t1 = t - 0.001;
-                t2 = t;
-            }
+            if (t2 > 1) { t1 = t - 0.001; t2 = t; }
             let pt1 = getSplinePoint(pts, t1);
             let pt2 = getSplinePoint(pts, t2);
             let dx = pt2.x - pt1.x;
             let dy = pt2.y - pt1.y;
-            let mag = sqrt(dx*dx + dy*dy) || 1;
+            let mag = Math.sqrt(dx*dx + dy*dy) || 1;
             return createVector(dx/mag, dy/mag);
         }
 
@@ -506,7 +516,7 @@
             beginShape();
             for (let i = 0; i < 21; i++) {
                 let vAngle = -HALF_PI + (i - 0.5) * (TWO_PI / 21);
-                vertex(cx + radius * cos(vAngle), cy + radius * sin(vAngle));
+                vertex(cx + radius * Math.cos(vAngle), cy + radius * Math.sin(vAngle));
             }
             endShape(CLOSE);
         }
@@ -517,10 +527,10 @@
             clear();
             background(255);
             
+            // Increased scale for massive chart presence
             scaleF = Math.min(width / vW, height / vH) * 1.05; 
 
-            // Offset the canvas UP by 80px on the mobile screen to avoid the data panel. 
-            // In 4K export mode, keep it perfectly centered (0 offset).
+            // Offset to prevent overlapping data panel on mobile
             let currentYOffset = isExporting ? 0 : -80;
 
             push();
@@ -533,7 +543,7 @@
             beginShape();
             for (let i = 0; i < 21; i++) {
                 let vAngle = -HALF_PI + (i - 0.5) * (TWO_PI / 21);
-                vertex(cx + R3 * cos(vAngle), cy + R3 * sin(vAngle));
+                vertex(cx + R3 * Math.cos(vAngle), cy + R3 * Math.sin(vAngle));
             }
             endShape(CLOSE);
 
@@ -550,7 +560,7 @@
                 -HALF_PI + 14 * TWO_PI / 21
             ];
             for(let a of sectorAngles) {
-                line(cx + R_hole * cos(a), cy + R_hole * sin(a), cx + R3 * cos(a), cy + R3 * sin(a));
+                line(cx + R_hole * Math.cos(a), cy + R_hole * Math.sin(a), cx + R3 * Math.cos(a), cy + R3 * Math.sin(a));
             }
 
             let fontScale = constrain(scaleF, 0.3, 1.0);
@@ -570,31 +580,33 @@
                 drawingContext.fillStyle = "rgba(0, 0, 0, 0.6)";
                 
                 drawingContext.font = "300 " + (15 / fontScale) + "px 'Crimson Pro'";
+                
+                // Massive distance away from the strands to prevent overlap
                 let sectorLabelRadius = R3 + 120; 
                 
                 // Quality (Top Right)
                 push();
-                translate(cx + sectorLabelRadius * cos(-HALF_PI + TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + TWO_PI/6));
+                translate(cx + sectorLabelRadius * Math.cos(-HALF_PI + TWO_PI/6), cy + sectorLabelRadius * Math.sin(-HALF_PI + TWO_PI/6));
                 drawingContext.fillText("Quality", 0, 0);
                 pop();
 
                 // Volume (Bottom Center)
                 push();
-                translate(cx + sectorLabelRadius * cos(HALF_PI), cy + sectorLabelRadius * sin(HALF_PI));
+                translate(cx + sectorLabelRadius * Math.cos(HALF_PI), cy + sectorLabelRadius * Math.sin(HALF_PI));
                 drawingContext.fillText("Volume", 0, 0);
                 pop();
 
                 // Neatness (Top Left)
                 push();
-                translate(cx + sectorLabelRadius * cos(-HALF_PI + 5*TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + 5*TWO_PI/6));
+                translate(cx + sectorLabelRadius * Math.cos(-HALF_PI + 5*TWO_PI/6), cy + sectorLabelRadius * Math.sin(-HALF_PI + 5*TWO_PI/6));
                 drawingContext.fillText("Neatness", 0, 0);
                 pop();
 
-                // Outer Day Dates
+                // Outer Day Dates (Moved cleanly outward)
                 for (let i = 0; i < 21; i++) {
                     let d = days[i];
-                    let lx = cx + (R3 + 60) * cos(d.a_base); 
-                    let ly = cy + (R3 + 60) * sin(d.a_base);
+                    let lx = cx + (R3 + 60) * Math.cos(d.a_base); 
+                    let ly = cy + (R3 + 60) * Math.sin(d.a_base);
                     
                     if (i === selectedIndex) {
                         drawingContext.fillStyle = "rgb(0, 0, 0)";
@@ -610,16 +622,21 @@
             pop();
         }
 
+        // HIGHLY OPTIMIZED RENDER PIPELINE
         function renderStrand(index, isSelected) {
             let day = days[index];
 
+            // Smooth Selection Animation
             let targetProgress = isSelected ? 1 : 0;
-            day.animProgress = lerp(day.animProgress, targetProgress, 0.08); 
-
-            let curPts = [];
-            for (let i = 0; i < day.pts_straight.length; i++) {
-                curPts.push(p5.Vector.lerp(day.pts_straight[i], day.pts_deformed[i], day.animProgress));
+            
+            // Performance optimization: prevent endless micro-lerping if mostly finished
+            if (Math.abs(day.animProgress - targetProgress) < 0.005) {
+                day.animProgress = targetProgress;
+            } else {
+                day.animProgress += (targetProgress - day.animProgress) * 0.08;
             }
+
+            let animProg = day.animProgress;
 
             let baseColor;
             if (isSelected) {
@@ -634,31 +651,42 @@
             strokeWeight(0.6); 
             noFill();
             
+            // Extremely fast batch drawing
             beginShape(LINES);
 
+            let fCount = frameCount * 0.04;
+            
             for (let s of day.strokes) {
-                let t = s.t;
+                // OPTIMIZATION: Linearly interpolate between the pre-cached Spline states!
+                // This removes 100,000+ complex Math operations per frame.
+                let ptX = s.ptS.x + (s.ptD.x - s.ptS.x) * animProg;
+                let ptY = s.ptS.y + (s.ptD.y - s.ptS.y) * animProg;
 
-                let pt = getSplinePoint(curPts, t);
-                let tan = getSplineTangent(curPts, t);
-                let nx = -tan.y;
-                let ny = tan.x;
+                let tanX = s.tanS.x + (s.tanD.x - s.tanS.x) * animProg;
+                let tanY = s.tanS.y + (s.tanD.y - s.tanS.y) * animProg;
 
-                let envelope = sin(t * PI); 
+                // Re-normalize tangent after lerping
+                let mag = Math.sqrt(tanX*tanX + tanY*tanY) || 1;
+                tanX /= mag;
+                tanY /= mag;
 
-                let turbulenceMag = 15 * day.animProgress * envelope;
-                let turbulence = sin(t * TWO_PI * 4 - frameCount * 0.05 + s.phase) * turbulenceMag;
+                let nx = -tanY;
+                let ny = tanX;
+
+                let turbulence = 0;
+                // Optimization: Do not compute turbulence if the strand is not deformed
+                if (animProg > 0.01) {
+                    turbulence = Math.sin(s.t * TWO_PI * 4 - fCount + s.phase) * (15 * animProg * s.env);
+                }
                 
-                let spreadWidth = (48 + 0 * day.animProgress) * envelope; 
+                let spreadWidth = 48 * s.env; 
                 let finalOffset = (s.offsetNorm * spreadWidth) + turbulence;
 
-                let cxPos = pt.x + nx * finalOffset;
-                let cyPos = pt.y + ny * finalOffset;
+                let cxPos = ptX + nx * finalOffset;
+                let cyPos = ptY + ny * finalOffset;
 
-                let halfLen = s.len / 2;
-                
-                vertex(cxPos - tan.x * halfLen, cyPos - tan.y * halfLen);
-                vertex(cxPos + tan.x * halfLen, cyPos + tan.y * halfLen);
+                vertex(cxPos - tanX * s.halfLen, cyPos - tanY * s.halfLen);
+                vertex(cxPos + tanX * s.halfLen, cyPos + tanY * s.halfLen);
             }
             
             endShape();
@@ -669,7 +697,6 @@
             if (mouseY < 50) return true; // prevent canvas interaction when tapping export button
             if (mouseY > height - 150) return true; // prevent interacting through the data panel
 
-            // Apply the exact same Y-offset logic so interaction still lines up accurately
             let currentYOffset = isExporting ? 0 : -80;
 
             let mx = (mouseX - width / 2) / scaleF + cx;
@@ -677,14 +704,14 @@
 
             let dToCenter = dist(mx, my, cx, cy);
             
-            let apothem = R3 * cos(PI / 21);
+            let apothem = R3 * Math.cos(PI / 21);
             if (dToCenter < apothem + 30 && dToCenter > R_hole - 10) {
-                let mouseAngle = atan2(my - cy, mx - cx);
+                let mouseAngle = Math.atan2(my - cy, mx - cx);
                 let adjustedAngle = mouseAngle + HALF_PI;
                 if (adjustedAngle < 0) adjustedAngle += TWO_PI;
                 
                 let sliceWidth = TWO_PI / 21;
-                let clickedIndex = floor((adjustedAngle + sliceWidth / 2) / sliceWidth) % 21;
+                let clickedIndex = Math.floor((adjustedAngle + sliceWidth / 2) / sliceWidth) % 21;
 
                 if (selectedIndex !== clickedIndex) {
                     selectedIndex = clickedIndex;

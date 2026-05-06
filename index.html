@@ -156,7 +156,7 @@
         ----------------------------------------------------------------- */
         #data-panel {
             position: absolute;
-            bottom: 95px; /* Visibly raised up from the instruction text */
+            bottom: 95px; 
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -230,7 +230,7 @@
         ----------------------------------------------------------------- */
         #instruction-panel {
             position: absolute;
-            bottom: 25px; /* Keeps it exactly where it was before */
+            bottom: 25px; 
             left: 0;
             width: 100%;
             font-size: 15px;
@@ -345,7 +345,6 @@
         const vW = 1000, vH = 1000;
         const cx = vW / 2, cy = vH / 2;
         
-        // Slightly reduced shape size to create a massive distance to the labels
         let R_hole = 40; 
         let R1 = 133;
         let R2 = 226;
@@ -371,13 +370,13 @@
             let currentW = width;
             let currentH = height;
             
-            isExporting = true; // Flag tells draw loop to skip text rendering
+            isExporting = true; // Flag tells draw loop to skip text rendering and centering offset
             resizeCanvas(4000, 4000); 
             draw(); 
             
             saveCanvas('bad_bed_head_visualization', 'png');
             
-            isExporting = false; // Turn text back on
+            isExporting = false; 
             resizeCanvas(currentW, currentH);
             draw();
         });
@@ -518,11 +517,14 @@
             clear();
             background(255);
             
-            // Scaled up dynamically to make the chart significantly larger
             scaleF = Math.min(width / vW, height / vH) * 1.05; 
 
+            // Offset the canvas UP by 80px on the mobile screen to avoid the data panel. 
+            // In 4K export mode, keep it perfectly centered (0 offset).
+            let currentYOffset = isExporting ? 0 : -80;
+
             push();
-            translate(width / 2, height / 2);
+            translate(width / 2, (height / 2) + currentYOffset);
             scale(scaleF);
             translate(-cx, -cy);
 
@@ -563,12 +565,10 @@
 
             // Only draw text if not exporting to 4k
             if (!isExporting) {
-                // Labels - Perfectly straight and horizontal
                 drawingContext.textAlign = "center";
                 drawingContext.textBaseline = "middle";
                 drawingContext.fillStyle = "rgba(0, 0, 0, 0.6)";
                 
-                // Pushed extremely far outwards (R3 + 120) to prevent any overlap
                 drawingContext.font = "300 " + (15 / fontScale) + "px 'Crimson Pro'";
                 let sectorLabelRadius = R3 + 120; 
                 
@@ -590,7 +590,7 @@
                 drawingContext.fillText("Neatness", 0, 0);
                 pop();
 
-                // Outer Day Dates (Moved further outward to clear the shape)
+                // Outer Day Dates
                 for (let i = 0; i < 21; i++) {
                     let d = days[i];
                     let lx = cx + (R3 + 60) * cos(d.a_base); 
@@ -669,8 +669,11 @@
             if (mouseY < 50) return true; // prevent canvas interaction when tapping export button
             if (mouseY > height - 150) return true; // prevent interacting through the data panel
 
+            // Apply the exact same Y-offset logic so interaction still lines up accurately
+            let currentYOffset = isExporting ? 0 : -80;
+
             let mx = (mouseX - width / 2) / scaleF + cx;
-            let my = (mouseY - height / 2) / scaleF + cy;
+            let my = (mouseY - ((height / 2) + currentYOffset)) / scaleF + cy;
 
             let dToCenter = dist(mx, my, cx, cy);
             

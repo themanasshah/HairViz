@@ -151,33 +151,26 @@
             outline: none;
         }
 
-        #info-panel {
-            height: 180px; 
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center; 
-            padding: 10px 20px;
-            background-color: #ffffff;
-            z-index: 10;
-            width: 100%;
-            position: relative;
-        }
-
-        #data-display {
+        /* -----------------------------------------------------------------
+           PANEL 1: DATA DISPLAY (Floating visibly upwards)
+        ----------------------------------------------------------------- */
+        #data-panel {
+            position: absolute;
+            bottom: 95px; /* Visibly raised up from the instruction text */
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
             max-width: 450px; 
-            margin-bottom: 25px; 
             opacity: 0; 
             transition: opacity 0.3s ease;
             pointer-events: none;
+            z-index: 20;
         }
 
-        #data-display.active {
+        #data-panel.active {
             opacity: 1;
         }
 
@@ -232,11 +225,20 @@
             color: #000000; 
         }
 
-        #instruction-msg {
+        /* -----------------------------------------------------------------
+           PANEL 2: INSTRUCTION TEXT (Locked to the bottom)
+        ----------------------------------------------------------------- */
+        #instruction-panel {
+            position: absolute;
+            bottom: 25px; /* Keeps it exactly where it was before */
+            left: 0;
+            width: 100%;
             font-size: 15px;
             color: #1e8eb4;
             font-weight: 300;
             text-align: center;
+            z-index: 10;
+            pointer-events: none;
         }
 
     </style>
@@ -269,32 +271,36 @@
             <!-- p5 canvas injects here -->
         </div>
 
-        <div id="info-panel">
-            <div id="data-display">
-                <div class="date-row">
-                    <span id="box-day">25/3</span>
-                    <span id="box-sh" class="shower-no">No Shower</span>
+        <!-- TWO DISTINCT PANELS -->
+        
+        <!-- Panel 1: Data Display (Raised) -->
+        <div id="data-panel">
+            <div class="date-row">
+                <span id="box-day">25/3</span>
+                <span id="box-sh" class="shower-no">No Shower</span>
+            </div>
+            
+            <div class="stats-row">
+                <div class="stat-col">
+                    <span class="stat-lbl">Quality</span>
+                    <span class="stat-val" id="box-qual">1</span>
                 </div>
-                
-                <div class="stats-row">
-                    <div class="stat-col">
-                        <span class="stat-lbl">Quality</span>
-                        <span class="stat-val" id="box-qual">1</span>
-                    </div>
-                    <div class="stat-col">
-                        <span class="stat-lbl">Volume</span>
-                        <span class="stat-val" id="box-vol">2</span>
-                    </div>
-                    <div class="stat-col">
-                        <span class="stat-lbl">Neatness</span>
-                        <span class="stat-val" id="box-neat">2</span>
-                    </div>
+                <div class="stat-col">
+                    <span class="stat-lbl">Volume</span>
+                    <span class="stat-val" id="box-vol">2</span>
+                </div>
+                <div class="stat-col">
+                    <span class="stat-lbl">Neatness</span>
+                    <span class="stat-val" id="box-neat">2</span>
                 </div>
             </div>
-
-            <!-- Instruction Text -->
-            <div id="instruction-msg">Tap on the Hair Strands to read the data</div>
         </div>
+
+        <!-- Panel 2: Instruction Text (Bottom) -->
+        <div id="instruction-panel">
+            Tap on the Hair Strands to read the data
+        </div>
+
     </div>
 
     <script>
@@ -339,10 +345,11 @@
         const vW = 1000, vH = 1000;
         const cx = vW / 2, cy = vH / 2;
         
+        // Slightly reduced shape size to create a massive distance to the labels
         let R_hole = 40; 
-        let R1 = 146;
-        let R2 = 253;
-        let R3 = 360; 
+        let R1 = 133;
+        let R2 = 226;
+        let R3 = 320; 
         let radiiMap = { 1: R1, 2: R2, 3: R3 };
         
         let days = [];
@@ -374,7 +381,6 @@
             resizeCanvas(currentW, currentH);
             draw();
         });
-
 
         function setup() {
             container = document.getElementById('app-container');
@@ -512,7 +518,8 @@
             clear();
             background(255);
             
-            scaleF = Math.min(width / vW, height / vH) * 0.90; 
+            // Scaled up dynamically to make the chart significantly larger
+            scaleF = Math.min(width / vW, height / vH) * 1.05; 
 
             push();
             translate(width / 2, height / 2);
@@ -546,7 +553,7 @@
 
             let fontScale = constrain(scaleF, 0.3, 1.0);
             
-            // 5. Render Strands
+            // Render Strands
             for (let i = 0; i < 21; i++) {
                 if (i !== selectedIndex) renderStrand(i, false);
             }
@@ -554,40 +561,40 @@
                 renderStrand(selectedIndex, true);
             }
 
-            // Only draw text and labels if we are not currently saving the 4K poster
+            // Only draw text if not exporting to 4k
             if (!isExporting) {
-                // 6. Labels - Perfectly straight and horizontal
+                // Labels - Perfectly straight and horizontal
                 drawingContext.textAlign = "center";
                 drawingContext.textBaseline = "middle";
                 drawingContext.fillStyle = "rgba(0, 0, 0, 0.6)";
                 
-                // Adjusted font size and spacing
+                // Pushed extremely far outwards (R3 + 120) to prevent any overlap
                 drawingContext.font = "300 " + (15 / fontScale) + "px 'Crimson Pro'";
-                let sectorLabelRadius = R3 + 60; 
+                let sectorLabelRadius = R3 + 120; 
                 
-                // Quality 
+                // Quality (Top Right)
                 push();
                 translate(cx + sectorLabelRadius * cos(-HALF_PI + TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + TWO_PI/6));
                 drawingContext.fillText("Quality", 0, 0);
                 pop();
 
-                // Volume is horizontal at the bottom
+                // Volume (Bottom Center)
                 push();
                 translate(cx + sectorLabelRadius * cos(HALF_PI), cy + sectorLabelRadius * sin(HALF_PI));
                 drawingContext.fillText("Volume", 0, 0);
                 pop();
 
-                // Neatness 
+                // Neatness (Top Left)
                 push();
                 translate(cx + sectorLabelRadius * cos(-HALF_PI + 5*TWO_PI/6), cy + sectorLabelRadius * sin(-HALF_PI + 5*TWO_PI/6));
                 drawingContext.fillText("Neatness", 0, 0);
                 pop();
 
-                // Outer Day Dates (Moved further outward)
+                // Outer Day Dates (Moved further outward to clear the shape)
                 for (let i = 0; i < 21; i++) {
                     let d = days[i];
-                    let lx = cx + (R3 + 50) * cos(d.a_base); 
-                    let ly = cy + (R3 + 50) * sin(d.a_base);
+                    let lx = cx + (R3 + 60) * cos(d.a_base); 
+                    let ly = cy + (R3 + 60) * sin(d.a_base);
                     
                     if (i === selectedIndex) {
                         drawingContext.fillStyle = "rgb(0, 0, 0)";
@@ -620,7 +627,7 @@
                 baseColor.setAlpha(255); 
             } else {
                 baseColor = color(C_BLACK);
-                baseColor.setAlpha(25); // Darker base for straight ribbons
+                baseColor.setAlpha(25); 
             }
             
             stroke(baseColor);
@@ -660,6 +667,7 @@
         function mousePressed() {
             if (!document.getElementById('screen-2').classList.contains('active')) return true;
             if (mouseY < 50) return true; // prevent canvas interaction when tapping export button
+            if (mouseY > height - 150) return true; // prevent interacting through the data panel
 
             let mx = (mouseX - width / 2) / scaleF + cx;
             let my = (mouseY - height / 2) / scaleF + cy;
@@ -680,11 +688,11 @@
                     updateInfoBox(clickedIndex);
                 } else {
                     selectedIndex = null;
-                    document.getElementById('data-display').classList.remove('active');
+                    document.getElementById('data-panel').classList.remove('active');
                 }
             } else {
                 selectedIndex = null;
-                document.getElementById('data-display').classList.remove('active');
+                document.getElementById('data-panel').classList.remove('active');
             }
             
             return false;
@@ -708,7 +716,7 @@
             document.getElementById('box-vol').innerText = d.data.vol;
             document.getElementById('box-neat').innerText = d.data.neat;
 
-            document.getElementById('data-display').classList.add('active');
+            document.getElementById('data-panel').classList.add('active');
         }
     </script>
 </body>
